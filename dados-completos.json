@@ -1,0 +1,576 @@
+{
+  "versao": "2.1",
+  "dataExportacao": "2025-10-19T23:30:00.000Z",
+  "turmas": [
+    {
+      "id": "MALU-TER-0730-1",
+      "nome": "Terça 7h30 - L1 Módulo 3",
+      "local": "UNIDADE 1: Pacote Office",
+      "modulo": "canva",
+      "dias": ["terca"],
+      "horario": "7:30 - 9:00",
+      "aulaAtual": 3,
+      "totalAulas": 12,
+      "status": "active"
+    },
+    {
+      "id": "MALU-TER-0900-1",
+      "nome": "Terça 9h - L1 Módulo 1",
+      "local": "UNIDADE 1: Pacote Office",
+      "modulo": "canva",
+      "dias": ["terca"],
+      "horario": "9:00 - 10:30",
+      "aulaAtual": 0,
+      "totalAulas": 12,
+      "status": "pending"
+    },
+    {
+      "id": "MALU-QUA-0730-1",
+      "nome": "Quarta 7h30 - L1 Módulo 1",
+      "local": "UNIDADE 1: Pacote Office",
+      "modulo": "canva",
+      "dias": ["quarta"],
+      "horario": "7:30 - 9:00",
+      "aulaAtual": 0,
+      "totalAulas": 12,
+      "status": "pending"
+    },
+    {
+      "id": "MALU-QUA-0900-1",
+      "nome": "Quarta 9h00 - L1 Módulo 1",
+      "local": "UNIDADE 1: Pacote Office",
+      "modulo": "canva",
+      "dias": ["quarta"],
+      "horario": "9:00 - 10:30",
+      "aulaAtual": 0,
+      "totalAulas": 12,
+      "status": "pending"
+    },
+    {
+      "id": "MALU-QUI-0730-1",
+      "nome": "Quinta 7h30 - L1 Módulo 1",
+      "local": "UNIDADE 1: Pacote Office",
+      "modulo": "canva",
+      "dias": ["quinta"],
+      "horario": "7:30 - 9:00",
+      "aulaAtual": 0,
+      "totalAulas": 12,
+      "status": "pending"
+    },
+    {
+      "id": "MALU-QUI-0900-1",
+      "nome": "Quinta 9h00 - L1 Módulo 1",
+      "local": "UNIDADE 1: Pacote Office",
+      "modulo": "canva",
+      "dias": ["quinta"],
+      "horario": "9:00 - 10:30",
+      "aulaAtual": 0,
+      "totalAulas": 12,
+      "status": "pending"
+    },
+    {
+      "id": "MALU-SEX-0730-1",
+      "nome": "Sexta 7h30 - L1 Módulo 1",
+      "local": "UNIDADE 1: Pacote Office",
+      "modulo": "canva",
+      "dias": ["sexta"],
+      "horario": "7:30 - 9:00",
+      "aulaAtual": 0,
+      "totalAulas": 12,
+      "status": "pending"
+    },
+    {
+      "id": "MALU-SEX-0900-1",
+      "nome": "Sexta 9h00 - L1 Módulo 1",
+      "local": "UNIDADE 1: Pacote Office",
+      "modulo": "canva",
+      "dias": ["sexta"],
+      "horario": "9:00 - 10:30",
+      "aulaAtual": 0,
+      "totalAulas": 12,
+      "status": "pending"
+    },
+    {
+      "id": "MALU-SAB-1000-1",
+      "nome": "Sábado 10h às 12h30",
+      "local": "UNIDADE 1: Pacote Office",
+      "modulo": "canva",
+      "dias": ["sabado"],
+      "horario": "10:00 - 12:30",
+      "aulaAtual": 0,
+      "totalAulas": 12,
+      "status": "pending"
+    },
+    {
+      "id": "MALU-SAB-1500-1",
+      "nome": "Sábado 15h às 17h30",
+      "local": "UNIDADE 1: Pacote Office",
+      "modulo": "canva",
+      "dias": ["sabado"],
+      "horario": "15:00 - 17:30",
+      "aulaAtual": 0,
+      "totalAulas": 12,
+      "status": "pending"
+    },
+    {
+      "id": "MOYSES-TER-1400-1",
+      "nome": "Terça 14h - L2 Excel Completo",
+      "local": "UNIDADE 2: Desenvolvimento Avançado",
+      "modulo": "excel",
+      "dias": ["terca"],
+      "horario": "14:00 - 15:30",
+      "aulaAtual": 12,
+      "totalAulas": 12,
+      "status": "completed"
+    },
+    {
+      "id": "MOYSES-TER-1530-1",
+      "nome": "Terça 15h30 - L2 Word Completo",
+      "local": "UNIDADE 2: Desenvolvimento Avançado",
+      "modulo": "word",
+      "dias": ["terca"],
+      "horario": "15:30 - 17:00",
+      "aulaAtual": 12,
+      "totalAulas": 12,
+      "status": "completed"
+    },
+    {
+      "id": "MOYSES-QUA-1330-1",
+      "nome": "Quarta 13h30 - L2 Power BI Básico Completo",
+      "local": "UNIDADE 2: Desenvolvimento Avançado",
+      "modulo": "informatica_powerbi",
+      "dias": ["quarta"],
+      "horario": "13:30 - 15:00",
+      "aulaAtual": 12,
+      "totalAulas": 12,
+      "status": "completed"
+    },
+    {
+      "id": "MOYSES-QUA-1500-1",
+      "nome": "Quarta 15h - L2 Figma Completo",
+      "local": "UNIDADE 2: Desenvolvimento Avançado",
+      "modulo": "figma",
+      "dias": ["quarta"],
+      "horario": "15:00 - 16:30",
+      "aulaAtual": 12,
+      "totalAulas": 12,
+      "status": "completed"
+    },
+    {
+      "id": "MOYSES-QUI-1400-1",
+      "nome": "Quinta 14h - L2 Unity (Em Andamento)",
+      "local": "UNIDADE 2: Desenvolvimento Avançado",
+      "modulo": "unity",
+      "dias": ["quinta"],
+      "horario": "14:00 - 15:30",
+      "aulaAtual": 2,
+      "totalAulas": 12,
+      "status": "active"
+    },
+    {
+      "id": "MOYSES-QUI-1530-1",
+      "nome": "Quinta 15h30 - L2 Unity (Em Andamento)",
+      "local": "UNIDADE 2: Desenvolvimento Avançado",
+      "modulo": "unity",
+      "dias": ["quinta"],
+      "horario": "15:30 - 17:00",
+      "aulaAtual": 2,
+      "totalAulas": 12,
+      "status": "active"
+    },
+    {
+      "id": "MOYSES-SEX-1330-1",
+      "nome": "Sexta 13h30 - L2 Unity (Em Andamento)",
+      "local": "UNIDADE 2: Desenvolvimento Avançado",
+      "modulo": "unity",
+      "dias": ["sexta"],
+      "horario": "13:30 - 15:00",
+      "aulaAtual": 2,
+      "totalAulas": 12,
+      "status": "active"
+    },
+    {
+      "id": "MOYSES-SEX-1500-1",
+      "nome": "Sexta 15h - L2 Unity (Em Andamento)",
+      "local": "UNIDADE 2: Desenvolvimento Avançado",
+      "modulo": "unity",
+      "dias": ["sexta"],
+      "horario": "15:00 - 16:30",
+      "aulaAtual": 2,
+      "totalAulas": 12,
+      "status": "active"
+    },
+    {
+      "id": "MOYSES-QUA-0730-1",
+      "nome": "Quarta 7h30 às 10h - L2 Unity Avançado",
+      "local": "UNIDADE 2: Desenvolvimento Avançado",
+      "modulo": "unity",
+      "dias": ["quarta"],
+      "horario": "7:30 - 10:00",
+      "aulaAtual": 3,
+      "totalAulas": 12,
+      "status": "active"
+    },
+    {
+      "id": "MOYSES-SAB-1230-1",
+      "nome": "Sábado 12h30 às 15h - L2 Unity Avançado",
+      "local": "UNIDADE 2: Desenvolvimento Avançado",
+      "modulo": "unity",
+      "dias": ["sabado"],
+      "horario": "12:30 - 15:00",
+      "aulaAtual": 3,
+      "totalAulas": 12,
+      "status": "active"
+    }
+  ],
+  "historico": {
+    "MALU-TER-0730-1": [
+      {
+        "aulaNumero": 1,
+        "data": "2025-10-01T07:30:00.000Z",
+        "timestamp": 1727766600000
+      },
+      {
+        "aulaNumero": 2,
+        "data": "2025-10-08T07:30:00.000Z",
+        "timestamp": 1728371400000
+      },
+      {
+        "aulaNumero": 3,
+        "data": "2025-10-15T07:30:00.000Z",
+        "timestamp": 1728976200000
+      }
+    ],
+    "MOYSES-TER-1400-1": [
+      {
+        "aulaNumero": 1,
+        "data": "2025-06-03T14:00:00.000Z",
+        "timestamp": 1717423200000
+      },
+      {
+        "aulaNumero": 2,
+        "data": "2025-06-10T14:00:00.000Z",
+        "timestamp": 1718028000000
+      },
+      {
+        "aulaNumero": 3,
+        "data": "2025-06-17T14:00:00.000Z",
+        "timestamp": 1718632800000
+      },
+      {
+        "aulaNumero": 4,
+        "data": "2025-06-24T14:00:00.000Z",
+        "timestamp": 1719237600000
+      },
+      {
+        "aulaNumero": 5,
+        "data": "2025-07-01T14:00:00.000Z",
+        "timestamp": 1719842400000
+      },
+      {
+        "aulaNumero": 6,
+        "data": "2025-07-08T14:00:00.000Z",
+        "timestamp": 1720447200000
+      },
+      {
+        "aulaNumero": 7,
+        "data": "2025-07-15T14:00:00.000Z",
+        "timestamp": 1721052000000
+      },
+      {
+        "aulaNumero": 8,
+        "data": "2025-07-22T14:00:00.000Z",
+        "timestamp": 1721656800000
+      },
+      {
+        "aulaNumero": 9,
+        "data": "2025-07-29T14:00:00.000Z",
+        "timestamp": 1722261600000
+      },
+      {
+        "aulaNumero": 10,
+        "data": "2025-08-05T14:00:00.000Z",
+        "timestamp": 1722866400000
+      },
+      {
+        "aulaNumero": 11,
+        "data": "2025-08-12T14:00:00.000Z",
+        "timestamp": 1723471200000
+      },
+      {
+        "aulaNumero": 12,
+        "data": "2025-08-19T14:00:00.000Z",
+        "timestamp": 1724076000000
+      }
+    ],
+    "MOYSES-TER-1530-1": [
+      {
+        "aulaNumero": 1,
+        "data": "2025-06-03T15:30:00.000Z",
+        "timestamp": 1717428600000
+      },
+      {
+        "aulaNumero": 2,
+        "data": "2025-06-10T15:30:00.000Z",
+        "timestamp": 1718033400000
+      },
+      {
+        "aulaNumero": 3,
+        "data": "2025-06-17T15:30:00.000Z",
+        "timestamp": 1718638200000
+      },
+      {
+        "aulaNumero": 4,
+        "data": "2025-06-24T15:30:00.000Z",
+        "timestamp": 1719243000000
+      },
+      {
+        "aulaNumero": 5,
+        "data": "2025-07-01T15:30:00.000Z",
+        "timestamp": 1719847800000
+      },
+      {
+        "aulaNumero": 6,
+        "data": "2025-07-08T15:30:00.000Z",
+        "timestamp": 1720452600000
+      },
+      {
+        "aulaNumero": 7,
+        "data": "2025-07-15T15:30:00.000Z",
+        "timestamp": 1721057400000
+      },
+      {
+        "aulaNumero": 8,
+        "data": "2025-07-22T15:30:00.000Z",
+        "timestamp": 1721662200000
+      },
+      {
+        "aulaNumero": 9,
+        "data": "2025-07-29T15:30:00.000Z",
+        "timestamp": 1722267000000
+      },
+      {
+        "aulaNumero": 10,
+        "data": "2025-08-05T15:30:00.000Z",
+        "timestamp": 1722871800000
+      },
+      {
+        "aulaNumero": 11,
+        "data": "2025-08-12T15:30:00.000Z",
+        "timestamp": 1723476600000
+      },
+      {
+        "aulaNumero": 12,
+        "data": "2025-08-19T15:30:00.000Z",
+        "timestamp": 1724081400000
+      }
+    ],
+    "MOYSES-QUA-1330-1": [
+      {
+        "aulaNumero": 1,
+        "data": "2025-07-02T13:30:00.000Z",
+        "timestamp": 1719924600000
+      },
+      {
+        "aulaNumero": 2,
+        "data": "2025-07-09T13:30:00.000Z",
+        "timestamp": 1720529400000
+      },
+      {
+        "aulaNumero": 3,
+        "data": "2025-07-16T13:30:00.000Z",
+        "timestamp": 1721134200000
+      },
+      {
+        "aulaNumero": 4,
+        "data": "2025-07-23T13:30:00.000Z",
+        "timestamp": 1721739000000
+      },
+      {
+        "aulaNumero": 5,
+        "data": "2025-07-30T13:30:00.000Z",
+        "timestamp": 1722343800000
+      },
+      {
+        "aulaNumero": 6,
+        "data": "2025-08-06T13:30:00.000Z",
+        "timestamp": 1722948600000
+      },
+      {
+        "aulaNumero": 7,
+        "data": "2025-08-13T13:30:00.000Z",
+        "timestamp": 1723553400000
+      },
+      {
+        "aulaNumero": 8,
+        "data": "2025-08-20T13:30:00.000Z",
+        "timestamp": 1724158200000
+      },
+      {
+        "aulaNumero": 9,
+        "data": "2025-08-27T13:30:00.000Z",
+        "timestamp": 1724763000000
+      },
+      {
+        "aulaNumero": 10,
+        "data": "2025-09-03T13:30:00.000Z",
+        "timestamp": 1725367800000
+      },
+      {
+        "aulaNumero": 11,
+        "data": "2025-09-10T13:30:00.000Z",
+        "timestamp": 1725972600000
+      },
+      {
+        "aulaNumero": 12,
+        "data": "2025-09-17T13:30:00.000Z",
+        "timestamp": 1726577400000
+      }
+    ],
+    "MOYSES-QUA-1500-1": [
+      {
+        "aulaNumero": 1,
+        "data": "2025-08-06T15:00:00.000Z",
+        "timestamp": 1722954000000
+      },
+      {
+        "aulaNumero": 2,
+        "data": "2025-08-13T15:00:00.000Z",
+        "timestamp": 1723558800000
+      },
+      {
+        "aulaNumero": 3,
+        "data": "2025-08-20T15:00:00.000Z",
+        "timestamp": 1724163600000
+      },
+      {
+        "aulaNumero": 4,
+        "data": "2025-08-27T15:00:00.000Z",
+        "timestamp": 1724768400000
+      },
+      {
+        "aulaNumero": 5,
+        "data": "2025-09-03T15:00:00.000Z",
+        "timestamp": 1725373200000
+      },
+      {
+        "aulaNumero": 6,
+        "data": "2025-09-10T15:00:00.000Z",
+        "timestamp": 1725978000000
+      },
+      {
+        "aulaNumero": 7,
+        "data": "2025-09-17T15:00:00.000Z",
+        "timestamp": 1726582800000
+      },
+      {
+        "aulaNumero": 8,
+        "data": "2025-09-24T15:00:00.000Z",
+        "timestamp": 1727187600000
+      },
+      {
+        "aulaNumero": 9,
+        "data": "2025-10-01T15:00:00.000Z",
+        "timestamp": 1727792400000
+      },
+      {
+        "aulaNumero": 10,
+        "data": "2025-10-08T15:00:00.000Z",
+        "timestamp": 1728397200000
+      },
+      {
+        "aulaNumero": 11,
+        "data": "2025-10-15T15:00:00.000Z",
+        "timestamp": 1729002000000
+      },
+      {
+        "aulaNumero": 12,
+        "data": "2025-10-16T15:00:00.000Z",
+        "timestamp": 1729088400000
+      }
+    ],
+    "MOYSES-QUI-1400-1": [
+      {
+        "aulaNumero": 1,
+        "data": "2025-10-09T14:00:00.000Z",
+        "timestamp": 1728482400000
+      },
+      {
+        "aulaNumero": 2,
+        "data": "2025-10-16T14:00:00.000Z",
+        "timestamp": 1729087200000
+      }
+    ],
+    "MOYSES-QUI-1530-1": [
+      {
+        "aulaNumero": 1,
+        "data": "2025-10-09T15:30:00.000Z",
+        "timestamp": 1728487800000
+      },
+      {
+        "aulaNumero": 2,
+        "data": "2025-10-16T15:30:00.000Z",
+        "timestamp": 1729092600000
+      }
+    ],
+    "MOYSES-SEX-1330-1": [
+      {
+        "aulaNumero": 1,
+        "data": "2025-10-10T13:30:00.000Z",
+        "timestamp": 1728566400000
+      },
+      {
+        "aulaNumero": 2,
+        "data": "2025-10-17T13:30:00.000Z",
+        "timestamp": 1729171200000
+      }
+    ],
+    "MOYSES-SEX-1500-1": [
+      {
+        "aulaNumero": 1,
+        "data": "2025-10-10T15:00:00.000Z",
+        "timestamp": 1728571800000
+      },
+      {
+        "aulaNumero": 2,
+        "data": "2025-10-17T15:00:00.000Z",
+        "timestamp": 1729176600000
+      }
+    ],
+    "MOYSES-QUA-0730-1": [
+      {
+        "aulaNumero": 1,
+        "data": "2025-10-08T07:30:00.000Z",
+        "timestamp": 1728371400000
+      },
+      {
+        "aulaNumero": 2,
+        "data": "2025-10-15T07:30:00.000Z",
+        "timestamp": 1728976200000
+      },
+      {
+        "aulaNumero": 3,
+        "data": "2025-10-16T07:30:00.000Z",
+        "timestamp": 1729062600000
+      }
+    ],
+    "MOYSES-SAB-1230-1": [
+      {
+        "aulaNumero": 1,
+        "data": "2025-10-11T12:30:00.000Z",
+        "timestamp": 1728651000000
+      },
+      {
+        "aulaNumero": 2,
+        "data": "2025-10-12T12:30:00.000Z",
+        "timestamp": 1728737400000
+      },
+      {
+        "aulaNumero": 3,
+        "data": "2025-10-18T12:30:00.000Z",
+        "timestamp": 1729255800000
+      }
+    ]
+  },
+  "conteudoCustomizado": {}
+}

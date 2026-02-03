@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: prisma_gestao_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: prisma_user
+      POSTGRES_PASSWORD: prisma_pass_2024
+      POSTGRES_DB: gestao_aulas
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U prisma_user -d gestao_aulas" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # pgAdmin (opcional - interface web para o banco)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: prisma_pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@prismatech.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:

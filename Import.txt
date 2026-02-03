@@ -1,0 +1,77 @@
+[
+  {
+    "id": "A4602-1",
+    "nome": "GTA Qua e Sex - 9h às 10h30",
+    "local": "UNIDADE 1: Pacote Office",
+    "dias": [
+      "quarta",
+      "sexta"
+    ],
+    "horario": "9:00 - 10:30",
+    "aulaAtual": 4,
+    "totalAulas": 12,
+    "status": "active"
+  },
+  {
+    "id": "A4605-1",
+    "nome": "GTA Sábado - 07:30hr - 10hr",
+    "local": "UNIDADE 1: Pacote Office",
+    "dias": [
+      "sabado"
+    ],
+    "horario": "7:30 - 10:00",
+    "aulaAtual": 5,
+    "totalAulas": 12,
+    "status": "active"
+  },
+  {
+    "id": "A4604-1",
+    "nome": "GTA Sábado - 10hr - 12:30hr",
+    "local": "UNIDADE 1: Pacote Office",
+    "dias": [
+      "sabado"
+    ],
+    "horario": "10:00 - 12:30",
+    "aulaAtual": 5,
+    "totalAulas": 12,
+    "status": "active"
+  },
+  {
+    "id": "A7004-1",
+    "nome": "GTA Sábado 12h30 - 15h",
+    "local": "UNIDADE 1: Pacote Office",
+    "dias": [
+      "sabado"
+    ],
+    "horario": "12:30 - 15:00",
+    "aulaAtual": 0,
+    "totalAulas": 12,
+    "status": "pending"
+  },
+  {
+    "id": "A4603-1",
+    "nome": "GTA Qua e Sex - 14h às 15h30",
+    "local": "UNIDADE 1: Pacote Office",
+    "dias": [
+      "quarta",
+      "sexta"
+    ],
+    "horario": "14:00 - 15:30",
+    "aulaAtual": 5,
+    "totalAulas": 12,
+    "status": "active"
+  },
+  {
+    "id": "A4606-1",
+    "nome": "GTA Terça-quinta 14hr-15:30hr",
+    "local": "UNIDADE 1: Pacote Office",
+    "dias": [
+      "terca",
+      "quinta"
+    ],
+    "horario": "14:00 - 15:30",
+    "aulaAtual": 7,
+    "totalAulas": 12,
+    "status": "active"
+  }
+]

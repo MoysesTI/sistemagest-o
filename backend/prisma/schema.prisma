@@ -1,0 +1,259 @@
+// ==========================================
+// PRISMA SCHEMA - SISTEMA DE GESTÃO DE AULAS
+// PrismaTech Code Academy
+// ==========================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================================
+// ENUMS
+// ==========================================
+
+enum UserRole {
+  ADMIN
+  PROFESSOR
+}
+
+enum DiaSemana {
+  SEGUNDA
+  TERCA
+  QUARTA
+  QUINTA
+  SEXTA
+  SABADO
+  DOMINGO
+}
+
+enum StatusTurma {
+  PENDENTE
+  ATIVA
+  CONCLUIDA
+  CANCELADA
+}
+
+enum TipoTarefa {
+  PLANEJAMENTO
+  ORGANIZACAO
+  PRODUCAO_MATERIAL
+  PROJETO
+  GRAVACAO
+  AJUSTE_PEDAGOGICO
+  OUTRO
+}
+
+enum StatusTarefa {
+  PENDENTE
+  EM_ANDAMENTO
+  CONCLUIDA
+  CANCELADA
+}
+
+// ==========================================
+// USUÁRIOS (Admin e Professor)
+// ==========================================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  senha         String
+  nome          String
+  telefone      String?
+  role          UserRole  @default(PROFESSOR)
+  ativo         Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Dados MEI (para professores)
+  cnpj          String?
+  razaoSocial   String?
+  certificadoMEI Boolean  @default(false)
+
+  // Relacionamentos
+  turmas        Turma[]
+  cronogramas   Cronograma[]
+  tarefas       Tarefa[]
+  registrosHora RegistroHora[]
+
+  @@map("users")
+}
+
+// ==========================================
+// CURSOS, MÓDULOS E AULAS
+// ==========================================
+
+model Curso {
+  id          String    @id @default(cuid())
+  codigo      String    @unique
+  nome        String
+  descricao   String?
+  cor         String    @default("#2980b9")
+  nivel       String    @default("L1")
+  ativo       Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relacionamentos
+  modulos     Modulo[]
+  turmas      Turma[]
+
+  @@map("cursos")
+}
+
+model Modulo {
+  id          String    @id @default(cuid())
+  codigo      String
+  nome        String
+  descricao   String?
+  ordem       Int       @default(1)
+  ativo       Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relacionamentos
+  cursoId     String
+  curso       Curso     @relation(fields: [cursoId], references: [id], onDelete: Cascade)
+  aulas       Aula[]
+  turmas      Turma[]
+
+  @@unique([cursoId, codigo])
+  @@map("modulos")
+}
+
+model Aula {
+  id          String    @id @default(cuid())
+  numero      Int
+  titulo      String
+  topicos     String[]
+  duracao     String    @default("2h30min")
+  ativo       Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relacionamentos
+  moduloId    String
+  modulo      Modulo    @relation(fields: [moduloId], references: [id], onDelete: Cascade)
+
+  @@unique([moduloId, numero])
+  @@map("aulas")
+}
+
+// ==========================================
+// TURMAS
+// ==========================================
+
+model Turma {
+  id            String      @id @default(cuid())
+  codigo        String      @unique
+  nome          String
+  local         String
+  qtdAlunos     Int         @default(0)
+  diasSemana    DiaSemana[]
+  horario       String
+  aulaAtual     Int         @default(0)
+  status        StatusTurma @default(PENDENTE)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  // Relacionamentos
+  professorId   String
+  professor     User        @relation(fields: [professorId], references: [id])
+  cursoId       String
+  curso         Curso       @relation(fields: [cursoId], references: [id])
+  moduloId      String?
+  modulo        Modulo?     @relation(fields: [moduloId], references: [id])
+  
+  cronogramas   Cronograma[]
+  registrosHora RegistroHora[]
+
+  @@map("turmas")
+}
+
+// ==========================================
+// CRONOGRAMA E TAREFAS
+// ==========================================
+
+model Cronograma {
+  id          String    @id @default(cuid())
+  data        DateTime
+  horaInicio  String
+  horaFim     String
+  descricao   String?
+  realizada   Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relacionamentos
+  professorId String
+  professor   User      @relation(fields: [professorId], references: [id])
+  turmaId     String?
+  turma       Turma?    @relation(fields: [turmaId], references: [id])
+
+  @@map("cronogramas")
+}
+
+model Tarefa {
+  id          String        @id @default(cuid())
+  tipo        TipoTarefa
+  titulo      String
+  descricao   String?
+  data        DateTime
+  horaInicio  String
+  horaFim     String
+  status      StatusTarefa  @default(PENDENTE)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  // Relacionamentos
+  professorId String
+  professor   User          @relation(fields: [professorId], references: [id])
+
+  @@map("tarefas")
+}
+
+// ==========================================
+// REGISTRO DE HORAS E PAGAMENTOS
+// ==========================================
+
+model RegistroHora {
+  id            String    @id @default(cuid())
+  data          DateTime
+  horaInicio    String
+  horaFim       String
+  duracaoMinutos Int
+  tipo          String    // "AULA" ou tipo de tarefa
+  descricao     String?
+  valorHora     Float
+  valorTotal    Float
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relacionamentos
+  professorId   String
+  professor     User      @relation(fields: [professorId], references: [id])
+  turmaId       String?
+  turma         Turma?    @relation(fields: [turmaId], references: [id])
+
+  @@map("registros_hora")
+}
+
+// ==========================================
+// PARÂMETROS DO SISTEMA
+// ==========================================
+
+model Parametro {
+  id          String    @id @default(cuid())
+  chave       String    @unique
+  valor       String
+  descricao   String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("parametros")
+}

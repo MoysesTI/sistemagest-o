@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro - PrismaTech</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <meta name="description" content="Crie sua conta no sistema de gestão de aulas PrismaTech Code Academy">
+</head>
+
+<body class="auth-page">
+    <div class="auth-card" style="max-width: 450px;">
+        <img src="assets/logo.png" alt="PrismaTech" class="auth-logo">
+
+        <h1 class="auth-title">Criar conta de Professor</h1>
+        <p class="auth-subtitle">Preencha seus dados para se cadastrar</p>
+
+        <div id="error-message" class="auth-error" style="display: none;">
+            <i class="bi bi-exclamation-triangle"></i>
+            <span></span>
+        </div>
+
+        <form class="auth-form" id="cadastro-form">
+            <div class="auth-input-group">
+                <i class="bi bi-person"></i>
+                <input type="text" id="cadastro-nome" placeholder="Nome completo *" required>
+            </div>
+
+            <div class="auth-input-group">
+                <i class="bi bi-envelope"></i>
+                <input type="email" id="cadastro-email" placeholder="E-mail *" required>
+            </div>
+
+            <div class="auth-input-group">
+                <i class="bi bi-phone"></i>
+                <input type="tel" id="cadastro-telefone" placeholder="Telefone">
+            </div>
+
+            <div class="auth-input-group">
+                <i class="bi bi-lock"></i>
+                <input type="password" id="cadastro-senha" placeholder="Senha *" required minlength="6">
+            </div>
+
+            <div class="auth-input-group">
+                <i class="bi bi-lock-fill"></i>
+                <input type="password" id="cadastro-confirmar" placeholder="Confirmar senha *" required>
+            </div>
+
+            <div
+                style="margin: 1rem 0; padding: 1rem; background: var(--bg-main); border-radius: var(--border-radius-sm);">
+                <p
+                    style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="bi bi-building"></i>
+                    <strong>Dados MEI (opcional)</strong>
+                </p>
+
+                <div class="auth-input-group" style="margin-bottom: 0.75rem;">
+                    <i class="bi bi-upc"></i>
+                    <input type="text" id="cadastro-cnpj" placeholder="CNPJ">
+                </div>
+
+                <div class="auth-input-group" style="margin-bottom: 0;">
+                    <i class="bi bi-shop"></i>
+                    <input type="text" id="cadastro-razao" placeholder="Razão Social">
+                </div>
+            </div>
+
+            <label class="auth-remember" style="margin: 0.5rem 0;">
+                <input type="checkbox" id="aceitar-termos" required>
+                Li e aceito os <a href="#" style="color: var(--accent);">termos de uso</a>
+            </label>
+
+            <button type="submit" class="auth-submit" id="btn-cadastro">
+                <i class="bi bi-person-plus"></i>
+                <span>Criar conta</span>
+            </button>
+        </form>
+
+        <div class="auth-footer">
+            Já tem uma conta? <a href="login.html">Fazer login</a>
+        </div>
+    </div>
+
+    <script src="api.js"></script>
+    <script>
+        // Verificar se já está logado
+        if (API.isLoggedIn()) {
+            window.location.href = 'index.html';
+        }
+
+        // Form de cadastro
+        document.getElementById('cadastro-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const nome = document.getElementById('cadastro-nome').value;
+            const email = document.getElementById('cadastro-email').value;
+            const telefone = document.getElementById('cadastro-telefone').value;
+            const senha = document.getElementById('cadastro-senha').value;
+            const confirmar = document.getElementById('cadastro-confirmar').value;
+            const cnpj = document.getElementById('cadastro-cnpj').value;
+            const razaoSocial = document.getElementById('cadastro-razao').value;
+
+            const btnCadastro = document.getElementById('btn-cadastro');
+            const errorDiv = document.getElementById('error-message');
+
+            // Validar senhas
+            if (senha !== confirmar) {
+                errorDiv.style.display = 'flex';
+                errorDiv.querySelector('span').textContent = 'As senhas não coincidem!';
+                return;
+            }
+
+            // Loading state
+            btnCadastro.disabled = true;
+            btnCadastro.innerHTML = '<i class="bi bi-arrow-repeat spin"></i> <span>Cadastrando...</span>';
+            errorDiv.style.display = 'none';
+
+            try {
+                await API.auth.register({
+                    nome,
+                    email,
+                    senha,
+                    telefone,
+                    cnpj,
+                    razaoSocial
+                });
+                window.location.href = 'index.html';
+            } catch (error) {
+                errorDiv.style.display = 'flex';
+                errorDiv.querySelector('span').textContent = error.message || 'Erro ao criar conta';
+
+                btnCadastro.disabled = false;
+                btnCadastro.innerHTML = '<i class="bi bi-person-plus"></i> <span>Criar conta</span>';
+            }
+        });
+    </script>
+
+    <style>
+        .auth-error {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: #fef2f2;
+            color: #dc2626;
+            padding: 0.75rem 1rem;
+            border-radius: var(--border-radius-sm);
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+        }
+
+        .spin {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</body>
+
+</html>
