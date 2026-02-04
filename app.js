@@ -191,10 +191,9 @@ window.showEditAulaModal = showEditAulaModal;
 window.submitEditAula = submitEditAula;
 window.marcarAula = async (turmaId, data) => {
     try {
-        // Criar item de cronograma manualmente se não existir
-        await API.turmas.avancarAula(turmaId);
+        const result = await API.cronograma.marcarAula(turmaId, data);
         await renderCronograma();
-        showNotification('Aula marcada!', 'success');
+        showNotification(`Aula marcada! Valor: R$ ${result.valorCalculado} (${result.duracaoHoras}h)`, 'success');
     } catch (error) {
         showNotification('Erro: ' + error.message, 'error');
     }

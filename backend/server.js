@@ -807,6 +807,134 @@ app.delete('/api/cronograma/:id', authMiddleware, async (req, res) => {
 });
 
 
+// ==========================================
+// MARCAR AULA DO CRONOGRAMA (para aulas temporais)
+// Cria CronogramaItem se não existir e marca como realizada
+// ==========================================
+app.post('/api/cronograma/marcar-aula', authMiddleware, async (req, res) => {
+    try {
+        const { turmaId, data } = req.body;
+
+        if (!turmaId || !data) {
+            return res.status(400).json({ error: 'turmaId e data são obrigatórios' });
+        }
+
+        // Buscar a turma
+        const turma = await prisma.turma.findUnique({
+            where: { id: turmaId },
+            include: { curso: { select: { nome: true } } }
+        });
+
+        if (!turma) {
+            return res.status(404).json({ error: 'Turma não encontrada' });
+        }
+
+        // Verificar permissão (admin ou professor da turma)
+        if (req.user.role !== 'ADMIN' && turma.professorId !== req.user.id) {
+            return res.status(403).json({ error: 'Acesso negado' });
+        }
+
+        // Normalizar a data para início do dia
+        const dataAula = new Date(data);
+        const dataInicio = new Date(dataAula.toISOString().split('T')[0] + 'T00:00:00Z');
+        const dataFim = new Date(dataAula.toISOString().split('T')[0] + 'T23:59:59Z');
+
+        // Verificar se já existe um CronogramaItem para esta turma nesta data
+        let cronogramaItem = await prisma.cronogramaItem.findFirst({
+            where: {
+                turmaId: turmaId,
+                data: {
+                    gte: dataInicio,
+                    lte: dataFim
+                }
+            }
+        });
+
+        // Calcular duração e valor
+        const [horaIni, minIni] = turma.horarioInicio.split(':').map(Number);
+        const [horaFim, minFim] = turma.horarioFim.split(':').map(Number);
+        const duracaoMinutos = (horaFim * 60 + minFim) - (horaIni * 60 + minIni);
+
+        // Buscar valor da hora
+        const valorHoraParam = await prisma.parametro.findUnique({ where: { chave: 'VALOR_HORA_AULA' } });
+        const valorHora = valorHoraParam ? parseFloat(valorHoraParam.valor) : 27.00;
+        const valorCalculado = (duracaoMinutos / 60) * valorHora;
+
+        if (cronogramaItem) {
+            // Se já existe, atualizar para realizada
+            cronogramaItem = await prisma.cronogramaItem.update({
+                where: { id: cronogramaItem.id },
+                data: {
+                    realizada: true,
+                    duracaoMinutos,
+                    valorCalculado
+                }
+            });
+        } else {
+            // Se não existe, criar novo
+            cronogramaItem = await prisma.cronogramaItem.create({
+                data: {
+                    professorId: turma.professorId,
+                    turmaId: turmaId,
+                    data: dataInicio,
+                    horaInicio: turma.horarioInicio,
+                    horaFim: turma.horarioFim,
+                    descricao: `${turma.nome} - ${turma.curso?.nome || 'Aula'}`,
+                    realizada: true,
+                    duracaoMinutos,
+                    valorCalculado
+                }
+            });
+        }
+
+        // Registrar na tabela RegistroHora
+        // Primeiro verificar se já existe registro para esta data/turma
+        const registroExistente = await prisma.registroHora.findFirst({
+            where: {
+                turmaId: turmaId,
+                data: {
+                    gte: dataInicio,
+                    lte: dataFim
+                }
+            }
+        });
+
+        if (!registroExistente) {
+            await prisma.registroHora.create({
+                data: {
+                    professorId: turma.professorId,
+                    turmaId: turmaId,
+                    data: dataInicio,
+                    horaInicio: turma.horarioInicio,
+                    horaFim: turma.horarioFim,
+                    duracaoMinutos,
+                    tipo: 'AULA',
+                    descricao: `${turma.nome} - ${turma.curso?.nome || 'Aula'}`,
+                    valorHora,
+                    valorTotal: valorCalculado
+                }
+            });
+        }
+
+        // Atualizar aulaAtual da turma
+        await prisma.turma.update({
+            where: { id: turmaId },
+            data: { aulaAtual: { increment: 1 } }
+        });
+
+        res.json({
+            message: 'Aula marcada com sucesso!',
+            cronogramaItem,
+            valorCalculado: valorCalculado.toFixed(2),
+            duracaoHoras: (duracaoMinutos / 60).toFixed(1)
+        });
+
+    } catch (error) {
+        console.error('Erro ao marcar aula:', error);
+        res.status(500).json({ error: 'Erro interno do servidor: ' + error.message });
+    }
+});
+
 // Marcar presença (check)
 app.put('/api/cronograma/:id/check', authMiddleware, async (req, res) => {
     try {

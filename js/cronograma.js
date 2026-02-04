@@ -112,10 +112,14 @@ const Cronograma = {
                     const nome = isTarefa ? tarefaExtra.titulo || item.descricao : (turma.nome || item.descricao);
                     const subtitulo = isTarefa ? (tarefaExtra.tipo || 'Tarefa') : (turma.curso?.nome || '');
                     const checkClass = item.realizada ? 'checked' : '';
-                    const canClickDetails = !item.isTemporal ? `onclick="showCronogramaItemDetails('${item.id}')"` : '';
+
+                    // Aulas temporais mostram detalhes da turma, itens salvos mostram detalhes do item
+                    const clickHandler = item.isTemporal
+                        ? `onclick="showTurmaDetails('${item.turmaId}')"`
+                        : `onclick="showCronogramaItemDetails('${item.id}')"`;
 
                     html += `
-                        <div class="cronograma-item ${checkClass} clickable" style="border-left-color: ${cor};" ${canClickDetails}>
+                        <div class="cronograma-item ${checkClass} clickable" style="border-left-color: ${cor};" ${clickHandler}>
                             <div class="cronograma-item-header">
                                 <span class="cronograma-time">${item.horaInicio || ''}</span>
                                 ${!item.isTemporal ? `
@@ -278,10 +282,14 @@ const Cronograma = {
                     const nome = isTarefa ? tarefaExtra.titulo || item.descricao : (turma.nome || item.descricao);
                     const subtitulo = isTarefa ? (tarefaExtra.tipo || 'Tarefa') : (turma.curso?.nome || '');
                     const checkClass = item.realizada ? 'checked' : '';
-                    const canClickDetails = !item.isTemporal ? `onclick="showCronogramaItemDetails('${item.id}')"` : '';
+
+                    // Aulas temporais mostram detalhes da turma, itens salvos mostram detalhes do item
+                    const clickHandler = item.isTemporal
+                        ? `onclick="showTurmaDetails('${item.turmaId}')"`
+                        : `onclick="showCronogramaItemDetails('${item.id}')"`;
 
                     html += `
-                        <div class="cronograma-item clickable ${checkClass}" style="border-left-color: ${cor};" ${canClickDetails}>
+                        <div class="cronograma-item clickable ${checkClass}" style="border-left-color: ${cor};" ${clickHandler}>
                             <div class="cronograma-item-header">
                                 <span class="cronograma-time">${item.horaInicio || ''}</span>
                                 ${!item.isTemporal ? `

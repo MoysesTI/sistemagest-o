@@ -164,6 +164,10 @@ const API = {
             if (dataInicio && dataFim) url += `?dataInicio=${dataInicio}&dataFim=${dataFim}`;
             return API.request(url);
         },
+        marcarAula: (turmaId, data) => API.request('/cronograma/marcar-aula', {
+            method: 'POST',
+            body: JSON.stringify({ turmaId, data })
+        }),
         recalcular: () => API.request('/cronograma/recalcular', { method: 'POST' })
     },
 
