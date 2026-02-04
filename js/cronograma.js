@@ -63,11 +63,13 @@ const Cronograma = {
             });
 
             // Também buscar turmas do cache que têm aula neste dia (fallback)
+            // Inclui turmas ATIVAS, PENDENTES e CONCLUIDAS (para histórico)
+            // Exclui apenas CANCELADAS
             const turmasDia = turmasCache.filter(t =>
                 t.diasSemana.includes(diasEnum[i]) &&
-                t.status !== 'CONCLUIDA' &&
-                (!t.dataInicio || new Date(t.dataInicio) <= dia) &&
-                (!t.dataFim || new Date(t.dataFim) >= dia)
+                t.status !== 'CANCELADA' &&
+                (!t.dataInicio || new Date(t.dataInicio).toISOString().split('T')[0] <= diaStr) &&
+                (!t.dataFim || new Date(t.dataFim).toISOString().split('T')[0] >= diaStr)
             );
 
             // Merge: usar itens da API como principal, adicionar turmas não presentes
@@ -235,11 +237,12 @@ const Cronograma = {
                 return itemDate === diaStr;
             });
 
+            // Inclui turmas ATIVAS, PENDENTES e CONCLUIDAS (para histórico)
             const turmasDia = turmasCache.filter(t =>
                 t.diasSemana.includes(diasEnum[diaSemana]) &&
-                t.status !== 'CONCLUIDA' &&
-                (!t.dataInicio || new Date(t.dataInicio) <= currentDate) &&
-                (!t.dataFim || new Date(t.dataFim) >= currentDate)
+                t.status !== 'CANCELADA' &&
+                (!t.dataInicio || new Date(t.dataInicio).toISOString().split('T')[0] <= diaStr) &&
+                (!t.dataFim || new Date(t.dataFim).toISOString().split('T')[0] >= diaStr)
             );
 
             const itensFinais = [...itensDia];
@@ -474,7 +477,7 @@ const Cronograma = {
                 </div>
                 <div class="modal-actions">
                     ${canEdit && isTarefa ? `<button class="btn btn-primary" onclick="showEditCronogramaItemModal('${item.id}')"><i class="bi bi-pencil"></i> Editar</button>` : ''}
-                    ${canEdit && isTarefa ? `<button class="btn btn-danger" onclick="deleteCronogramaItem('${item.id}')"><i class="bi bi-trash"></i> Excluir</button>` : ''}
+                    ${canEdit ? `<button class="btn btn-danger" onclick="deleteCronogramaItem('${item.id}')"><i class="bi bi-trash"></i> Excluir</button>` : ''}
                     <button class="btn btn-secondary" onclick="closeModal('modal-item-details')">Fechar</button>
                 </div>
             `;

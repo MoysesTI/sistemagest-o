@@ -532,11 +532,17 @@ app.delete('/api/turmas/:id', authMiddleware, async (req, res) => {
             return res.status(403).json({ error: 'Acesso negado' });
         }
 
+        // Excluir dependências (CronogramaItem e RegistroHora não têm Cascade no schema)
+        await prisma.cronogramaItem.deleteMany({ where: { turmaId: turma.id } });
+        await prisma.registroHora.deleteMany({ where: { turmaId: turma.id } });
+        // TurmaModulo tem Cascade, mas garantindo para evitar erro
+        await prisma.turmaModulo.deleteMany({ where: { turmaId: turma.id } });
+
         await prisma.turma.delete({ where: { id: req.params.id } });
         res.json({ message: 'Turma excluída com sucesso' });
     } catch (error) {
         console.error('Erro ao excluir turma:', error);
-        res.status(500).json({ error: 'Erro interno do servidor' });
+        res.status(500).json({ error: 'Erro interno do servidor: ' + error.message });
     }
 });
 

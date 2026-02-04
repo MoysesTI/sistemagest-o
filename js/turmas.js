@@ -415,9 +415,12 @@ const Turmas = {
             </div>
 
             <div class="modal-actions">
-                ${API.isAdmin() ? `
+                ${(API.isAdmin() || (API.getCurrentUser() && turma.professorId === API.getCurrentUser().id)) ? `
                     <button class="btn btn-primary" onclick="showEditTurmaModal('${turma.id}')">
                         <i class="bi bi-pencil"></i> Editar
+                    </button>
+                    <button class="btn btn-danger" onclick="deleteTurma('${turma.id}')" style="margin-left: 10px;">
+                        <i class="bi bi-trash"></i> Excluir
                     </button>
                 ` : ''}
                 <button class="btn btn-secondary" onclick="closeModal('modal-turma-details')">Fechar</button>
@@ -627,6 +630,22 @@ const Turmas = {
             await updateDashboard();
         } catch (error) {
             showNotification('Erro: ' + error.message, 'error');
+        }
+    },
+
+    async delete(turmaId) {
+        if (!confirm('Tem certeza que deseja excluir esta turma? Todas as aulas e registros serão apagados permanentemente.')) return;
+
+        try {
+            await API.turmas.excluir(turmaId);
+            showNotification('Turma excluída com sucesso!', 'success');
+            closeModal('modal-turma-details');
+            closeModal('modal-edit-turma'); // Caso esteja aberto via edit
+            turmasCache = await API.turmas.listar();
+            Turmas.render();
+            await updateDashboard();
+        } catch (error) {
+            showNotification('Erro ao excluir: ' + error.message, 'error');
         }
     }
 };
