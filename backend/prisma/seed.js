@@ -21,7 +21,10 @@ async function main() {
 
     const admin = await prisma.user.upsert({
         where: { email: 'admin@prismatech.com' },
-        update: {},
+        update: {
+            senha: adminPassword,  // Atualiza a senha se já existir
+            role: 'ADMIN'
+        },
         create: {
             email: 'admin@prismatech.com',
             senha: adminPassword,
@@ -30,7 +33,7 @@ async function main() {
             telefone: '(11) 99999-9999'
         }
     });
-    console.log(`   ✅ Admin criado: ${admin.email}`);
+    console.log(`   ✅ Admin criado/atualizado: ${admin.email}`);
 
     // ==========================================
     // PARÂMETROS DO SISTEMA
