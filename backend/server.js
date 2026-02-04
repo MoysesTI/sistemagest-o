@@ -20,6 +20,10 @@ const PORT = process.env.PORT || 5001;
 // MIDDLEWARE DE SEGURANÇA
 // ==========================================
 
+// Trust proxy (necessário para Render, Railway, Heroku, etc.)
+// Permite que express-rate-limit funcione corretamente atrás de proxy
+app.set('trust proxy', 1);
+
 app.use(helmet());
 
 // CORS configurado para produção
