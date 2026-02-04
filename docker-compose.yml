@@ -7,18 +7,70 @@ services:
     container_name: prisma_gestao_db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: prisma_user
-      POSTGRES_PASSWORD: prisma_pass_2024
-      POSTGRES_DB: gestao_aulas
+      POSTGRES_USER: ${DB_USER:-prisma_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-prisma_pass_2024}
+      POSTGRES_DB: ${DB_NAME:-gestao_aulas}
     ports:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U prisma_user -d gestao_aulas" ]
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER:-prisma_user} -d ${DB_NAME:-gestao_aulas}" ]
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - gestao-network
+
+  # Backend API - Node.js
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: prisma_gestao_api
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 5001
+      DATABASE_URL: postgresql://${DB_USER:-prisma_user}:${DB_PASSWORD:-prisma_pass_2024}@postgres:5432/${DB_NAME:-gestao_aulas}?schema=public
+      JWT_SECRET: ${JWT_SECRET:-mude_me_para_uma_senha_segura_em_producao}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@prismatech.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
+      VALOR_HORA_AULA: ${VALOR_HORA_AULA:-27.00}
+    ports:
+      - "5001:5001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5001/health" ]
+      interval: 30s
+      timeout: 3s
+      start_period: 10s
+      retries: 3
+    networks:
+      - gestao-network
+
+  # Frontend - Nginx
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: prisma_gestao_frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/" ]
+      interval: 30s
+      timeout: 3s
+      start_period: 5s
+      retries: 3
+    networks:
+      - gestao-network
 
   # pgAdmin (opcional - interface web para o banco)
   pgadmin:
@@ -26,12 +78,20 @@ services:
     container_name: prisma_pgadmin
     restart: unless-stopped
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@prismatech.com
-      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@prismatech.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin123}
     ports:
       - "5050:80"
     depends_on:
       - postgres
+    networks:
+      - gestao-network
+    profiles:
+      - tools
+
+networks:
+  gestao-network:
+    driver: bridge
 
 volumes:
   postgres_data:

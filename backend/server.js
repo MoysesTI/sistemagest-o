@@ -21,7 +21,29 @@ const PORT = process.env.PORT || 5001;
 // ==========================================
 
 app.use(helmet());
-app.use(cors());
+
+// CORS configurado para produção
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(',')
+    : ['http://localhost:3000', 'http://localhost:80', 'http://127.0.0.1:3000'];
+
+app.use(cors({
+    origin: function (origin, callback) {
+        // Permite requisições sem origin (ex: mobile apps, curl)
+        if (!origin) return callback(null, true);
+
+        if (allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            console.warn(`CORS blocked origin: ${origin}`);
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 app.use(express.json({ limit: '10mb' }));
 
 const limiter = rateLimit({
@@ -31,6 +53,10 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
+// Health check endpoint (para Docker/Kubernetes)
+app.get('/health', (req, res) => {
+    res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
 
 // Middleware de autenticação
 const authMiddleware = async (req, res, next) => {

@@ -314,6 +314,320 @@ const Turmas = {
         } catch (error) {
             showNotification('Erro: ' + error.message, 'error');
         }
+    },
+
+    // ==========================================
+    // DETALHES DA TURMA
+    // ==========================================
+    async showDetails(turmaId) {
+        const turma = turmasCache.find(t => t.id === turmaId);
+        if (!turma) {
+            showNotification('Turma não encontrada', 'error');
+            return;
+        }
+
+        const curso = turma.curso || {};
+        const professor = turma.professor || {};
+        const statusText = {
+            'PENDENTE': 'Pendente',
+            'ATIVA': 'Em Andamento',
+            'CONCLUIDA': 'Concluída',
+            'CANCELADA': 'Cancelada'
+        };
+
+        const dataInicio = turma.dataInicio ? new Date(turma.dataInicio).toLocaleDateString('pt-BR') : '-';
+        const dataFim = turma.dataFim ? new Date(turma.dataFim).toLocaleDateString('pt-BR') : '-';
+        const diasFormatados = turma.diasSemana.map(d => Turmas.formatDia(d)).join(', ');
+
+        const content = `
+            <div class="turma-details">
+                <div class="detail-section">
+                    <h4><i class="bi bi-info-circle"></i> Informações Gerais</h4>
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <label>Código</label>
+                            <span>${turma.codigo}</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Nome</label>
+                            <span>${turma.nome}</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Status</label>
+                            <span class="status-badge ${turma.status.toLowerCase()}">${statusText[turma.status]}</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Local</label>
+                            <span>${turma.local}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <h4><i class="bi bi-book"></i> Curso</h4>
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <label>Curso</label>
+                            <span style="color: ${curso.cor}">${curso.nome || 'Não definido'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Aula Atual</label>
+                            <span>${turma.aulaAtual || 1} de ${curso.totalAulas || '?'}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <h4><i class="bi bi-person"></i> Professor</h4>
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <label>Nome</label>
+                            <span>${professor.nome || 'Não atribuído'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Email</label>
+                            <span>${professor.email || '-'}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <h4><i class="bi bi-calendar"></i> Horários</h4>
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <label>Período</label>
+                            <span>${dataInicio} até ${dataFim}</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Horário</label>
+                            <span>${turma.horarioInicio} - ${turma.horarioFim}</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Dias</label>
+                            <span>${diasFormatados}</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Alunos</label>
+                            <span>${turma.qtdAlunos}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                ${API.isAdmin() ? `
+                    <button class="btn btn-primary" onclick="showEditTurmaModal('${turma.id}')">
+                        <i class="bi bi-pencil"></i> Editar
+                    </button>
+                ` : ''}
+                <button class="btn btn-secondary" onclick="closeModal('modal-turma-details')">Fechar</button>
+            </div>
+        `;
+
+        const existingModal = document.getElementById('modal-turma-details');
+        if (existingModal) existingModal.remove();
+
+        const modal = createModal('modal-turma-details', `Detalhes: ${turma.nome}`, content);
+        document.body.appendChild(modal);
+        modal.classList.add('active');
+    },
+
+    // ==========================================
+    // EDITAR TURMA
+    // ==========================================
+    async showEditModal(turmaId) {
+        const turma = turmasCache.find(t => t.id === turmaId);
+        if (!turma) {
+            showNotification('Turma não encontrada', 'error');
+            return;
+        }
+
+        closeModal('modal-turma-details');
+
+        const existingModal = document.getElementById('modal-edit-turma');
+        if (existingModal) existingModal.remove();
+
+        const modal = createModal('modal-edit-turma', 'Editar Turma', Turmas.getEditFormHTML(turma));
+        document.body.appendChild(modal);
+
+        // Popular selects
+        const cursoSelect = document.getElementById('edit-turma-curso');
+        cursoSelect.innerHTML = '<option value="">Selecione um curso</option>' +
+            cursosCache.map(c => `<option value="${c.id}" ${c.id === turma.cursoId ? 'selected' : ''}>${c.nome}</option>`).join('');
+
+        const profRow = document.getElementById('edit-row-professor');
+        const profSelect = document.getElementById('edit-turma-professor');
+
+        if (API.isAdmin() && profRow && profSelect) {
+            profRow.style.display = 'flex';
+            const profs = professoresCache.filter(u => u.role === 'PROFESSOR');
+            profSelect.innerHTML = '<option value="">Selecione um professor</option>' +
+                profs.map(p => `<option value="${p.id}" ${p.id === turma.professorId ? 'selected' : ''}>${p.nome}</option>`).join('');
+        } else if (profRow) {
+            profRow.style.display = 'none';
+        }
+
+        // Popular campos
+        document.getElementById('edit-turma-id').value = turma.id;
+        document.getElementById('edit-turma-codigo').value = turma.codigo;
+        document.getElementById('edit-turma-nome').value = turma.nome;
+        document.getElementById('edit-turma-local').value = turma.local;
+        document.getElementById('edit-turma-hora-inicio').value = turma.horarioInicio;
+        document.getElementById('edit-turma-hora-fim').value = turma.horarioFim;
+        document.getElementById('edit-turma-data-inicio').value = turma.dataInicio ? turma.dataInicio.split('T')[0] : '';
+        document.getElementById('edit-turma-data-fim').value = turma.dataFim ? turma.dataFim.split('T')[0] : '';
+        document.getElementById('edit-turma-alunos').value = turma.qtdAlunos;
+        document.getElementById('edit-turma-status').value = turma.status;
+
+        // Marcar dias da semana
+        turma.diasSemana.forEach(dia => {
+            const cb = document.querySelector(`input[name="edit-turma-dias"][value="${dia}"]`);
+            if (cb) cb.checked = true;
+        });
+
+        modal.classList.add('active');
+    },
+
+    getEditFormHTML(turma) {
+        return `
+            <form id="form-edit-turma" onsubmit="submitEditTurma(event)">
+                <input type="hidden" id="edit-turma-id" />
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Código *</label>
+                        <input type="text" id="edit-turma-codigo" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Nome *</label>
+                        <input type="text" id="edit-turma-nome" class="form-input" required>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Curso *</label>
+                        <select id="edit-turma-curso" class="form-select" required></select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Local *</label>
+                        <input type="text" id="edit-turma-local" class="form-input" required>
+                    </div>
+                </div>
+                
+                <div class="form-row admin-only" id="edit-row-professor">
+                    <div class="form-group" style="flex: 1;">
+                        <label class="form-label">Professor</label>
+                        <select id="edit-turma-professor" class="form-select"></select>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Data Início *</label>
+                        <input type="date" id="edit-turma-data-inicio" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Data Fim *</label>
+                        <input type="date" id="edit-turma-data-fim" class="form-input" required>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Horário Início *</label>
+                        <input type="time" id="edit-turma-hora-inicio" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Horário Fim *</label>
+                        <input type="time" id="edit-turma-hora-fim" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Qtd. Alunos</label>
+                        <input type="number" id="edit-turma-alunos" class="form-input" min="1">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Status</label>
+                        <select id="edit-turma-status" class="form-select">
+                            <option value="PENDENTE">Pendente</option>
+                            <option value="ATIVA">Em Andamento</option>
+                            <option value="CONCLUIDA">Concluída</option>
+                            <option value="CANCELADA">Cancelada</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Dias da Semana *</label>
+                    <div class="checkbox-group">
+                        <label class="checkbox-item"><input type="checkbox" name="edit-turma-dias" value="SEGUNDA"> Segunda</label>
+                        <label class="checkbox-item"><input type="checkbox" name="edit-turma-dias" value="TERCA"> Terça</label>
+                        <label class="checkbox-item"><input type="checkbox" name="edit-turma-dias" value="QUARTA"> Quarta</label>
+                        <label class="checkbox-item"><input type="checkbox" name="edit-turma-dias" value="QUINTA"> Quinta</label>
+                        <label class="checkbox-item"><input type="checkbox" name="edit-turma-dias" value="SEXTA"> Sexta</label>
+                        <label class="checkbox-item"><input type="checkbox" name="edit-turma-dias" value="SABADO"> Sábado</label>
+                    </div>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('modal-edit-turma')">Cancelar</button>
+                    <button type="submit" class="btn btn-accent"><i class="bi bi-check-lg"></i> Salvar Alterações</button>
+                </div>
+            </form>
+        `;
+    },
+
+    async update(e) {
+        e.preventDefault();
+
+        const turmaId = document.getElementById('edit-turma-id').value;
+        const dias = Array.from(document.querySelectorAll('input[name="edit-turma-dias"]:checked')).map(cb => cb.value);
+
+        if (dias.length === 0) {
+            showNotification('Selecione ao menos um dia', 'error');
+            return;
+        }
+
+        const dataInicio = document.getElementById('edit-turma-data-inicio').value;
+        const dataFim = document.getElementById('edit-turma-data-fim').value;
+
+        if (new Date(dataFim) <= new Date(dataInicio)) {
+            showNotification('A data fim deve ser após a data início', 'error');
+            return;
+        }
+
+        const data = {
+            codigo: document.getElementById('edit-turma-codigo').value,
+            nome: document.getElementById('edit-turma-nome').value,
+            cursoId: document.getElementById('edit-turma-curso').value,
+            local: document.getElementById('edit-turma-local').value,
+            horarioInicio: document.getElementById('edit-turma-hora-inicio').value,
+            horarioFim: document.getElementById('edit-turma-hora-fim').value,
+            qtdAlunos: parseInt(document.getElementById('edit-turma-alunos').value) || 10,
+            diasSemana: dias,
+            dataInicio: dataInicio,
+            dataFim: dataFim,
+            status: document.getElementById('edit-turma-status').value
+        };
+
+        const profSelect = document.getElementById('edit-turma-professor');
+        if (API.isAdmin() && profSelect && profSelect.value) {
+            data.professorId = profSelect.value;
+        }
+
+        try {
+            await API.turmas.atualizar(turmaId, data);
+            showNotification('Turma atualizada com sucesso!', 'success');
+            closeModal('modal-edit-turma');
+            turmasCache = await API.turmas.listar();
+            Turmas.render();
+            await updateDashboard();
+        } catch (error) {
+            showNotification('Erro: ' + error.message, 'error');
+        }
     }
 };
 
@@ -327,3 +641,7 @@ window.deleteTurma = Turmas.delete.bind(Turmas);
 window.showNovaTurmaModal = Turmas.showModal.bind(Turmas);
 window.getTurmaFormHTML = Turmas.getFormHTML.bind(Turmas);
 window.submitTurma = Turmas.submit.bind(Turmas);
+window.showTurmaDetails = Turmas.showDetails.bind(Turmas);
+window.showEditTurmaModal = Turmas.showEditModal.bind(Turmas);
+window.submitEditTurma = Turmas.update.bind(Turmas);
+

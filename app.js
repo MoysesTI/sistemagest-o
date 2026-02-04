@@ -180,7 +180,7 @@ window.mudarSemana = mudarSemana;
 window.importarCronograma = importarCronograma;
 window.toggleCronogramaCheck = toggleCronogramaCheck;
 window.closeModal = closeModal;
-window.showTurmaDetails = (id) => console.log('Detalhes:', id);
+// showTurmaDetails, showEditTurmaModal e submitEditTurma são exportados de turmas.js
 window.editCurso = (id) => console.log('Editar curso:', id);
 window.deleteCurso = (id) => console.log('Deletar curso:', id);
 window.editProfessor = (id) => console.log('Editar professor:', id);

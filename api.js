@@ -1,4 +1,7 @@
-const API_BASE = 'http://localhost:5001/api';
+// Detecta se está em desenvolvimento (localhost com porta separada) ou produção (nginx proxy)
+const API_BASE = window.location.hostname === 'localhost' && window.location.port === '3000'
+    ? 'http://localhost:5001/api'  // Desenvolvimento local
+    : '/api';                       // Produção (nginx faz proxy)
 
 const API = {
     getToken: () => localStorage.getItem('auth_token'),
