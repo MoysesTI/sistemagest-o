@@ -31,13 +31,17 @@ const API = {
             headers: { ...headers, ...options.headers }
         });
 
-        if (response.status === 401) {
-            API.logout();
-            return null;
+        const data = await response.json();
+
+        // Se não é OK, lança erro com mensagem da API
+        if (!response.ok) {
+            // Se 401 e NÃO é rota de login, faz logout
+            if (response.status === 401 && !endpoint.includes('/auth/login')) {
+                API.logout();
+            }
+            throw new Error(data.error || 'Erro na requisição');
         }
 
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || 'Erro na requisição');
         return data;
     },
 

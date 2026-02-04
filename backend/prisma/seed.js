@@ -1,8 +1,9 @@
 // ==========================================
-// SEED - APENAS ADMIN E PARÂMETROS
-// Sistema zerado - cursos serão criados manualmente
+// SEED - ADMIN E PARÂMETROS DO SISTEMA
+// Usa variáveis de ambiente para credenciais
 // ==========================================
 
+require('dotenv').config();
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
 
@@ -10,38 +11,44 @@ const prisma = new PrismaClient();
 
 async function main() {
     console.log('🌱 Iniciando seed do banco de dados...\n');
-    console.log('📢 SISTEMA ZERADO - Cursos serão adicionados manualmente\n');
 
     // ==========================================
-    // USUÁRIO ADMIN PEDAGÓGICO
+    // USUÁRIO ADMIN
     // ==========================================
-    console.log('👤 Criando usuário admin pedagógico...');
 
-    const adminPassword = await bcrypt.hash('admin123', 10);
+    // Usa variáveis de ambiente ou valores padrão
+    const adminEmail = process.env.ADMIN_EMAIL || 'admin@prismatech.com';
+    const adminPass = process.env.ADMIN_PASSWORD || 'admin123';
+
+    console.log(`👤 Configurando admin: ${adminEmail}`);
+
+    const hashedPassword = await bcrypt.hash(adminPass, 10);
 
     const admin = await prisma.user.upsert({
-        where: { email: 'admin@prismatech.com' },
+        where: { email: adminEmail },
         update: {
-            senha: adminPassword,  // Atualiza a senha se já existir
+            senha: hashedPassword,
             role: 'ADMIN'
         },
         create: {
-            email: 'admin@prismatech.com',
-            senha: adminPassword,
-            nome: 'Administrador Pedagógico',
+            email: adminEmail,
+            senha: hashedPassword,
+            nome: 'Administrador',
             role: 'ADMIN',
             telefone: '(11) 99999-9999'
         }
     });
-    console.log(`   ✅ Admin criado/atualizado: ${admin.email}`);
+    console.log(`   ✅ Admin configurado: ${admin.email}`);
 
     // ==========================================
     // PARÂMETROS DO SISTEMA
     // ==========================================
-    console.log('\n⚙️ Criando parâmetros do sistema...');
+    console.log('\n⚙️ Configurando parâmetros do sistema...');
+
+    const valorHoraAula = process.env.VALOR_HORA_AULA || '27.00';
 
     const parametros = [
-        { chave: 'VALOR_HORA_AULA', valor: '27.00', descricao: 'Valor base da hora-aula em R$' },
+        { chave: 'VALOR_HORA_AULA', valor: valorHoraAula, descricao: 'Valor base da hora-aula em R$' },
         { chave: 'BONUS_PERCENTUAL', valor: '33', descricao: 'Percentual de bonificação' },
         { chave: 'RETENCAO_PERCENTUAL', valor: '80', descricao: 'Percentual de retenção' },
         { chave: 'DURACAO_AULA_PADRAO', valor: '150', descricao: 'Duração padrão de aula em minutos' }
@@ -58,12 +65,7 @@ async function main() {
 
     console.log('\n✨ Seed concluído com sucesso!\n');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('  Credenciais de acesso:');
-    console.log('    📧 admin@prismatech.com / admin123');
-    console.log('');
-    console.log('  ⚠️  Sistema iniciado ZERADO');
-    console.log('  📚 Adicione cursos, módulos e aulas manualmente');
-    console.log('  👨‍🏫 Cadastre professores pelo sistema');
+    console.log(`  Admin: ${adminEmail}`);
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 }
 
