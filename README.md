@@ -1,137 +1,89 @@
-# 📚 Sistema de Gestão de Aulas - PrismaTech
+# Sistema de Gestão de Aulas - PrismaTech
 
-Sistema full-stack para gestão de turmas, professores, cronograma e horas trabalhadas.
+Sistema de gestão de aulas, professores e financeiro para a PrismaTech Code Academy.
+Desenvolvido com Vanilla JS (Frontend) e Node.js/Express/Prisma (Backend).
 
-![PrismaTech](assets/logo.png)
+## 🚀 Instalação e Configuração
 
-## 🛠️ Tecnologias
-
-- **Frontend**: HTML, CSS, JavaScript (Bootstrap Icons)
-- **Backend**: Node.js, Express
-- **ORM**: Prisma
-- **Banco**: PostgreSQL
-- **Container**: Docker
-
----
-
-## 🚀 Quick Start (Novo PC)
-
-### Pré-requisitos
-- [Node.js 18+](https://nodejs.org/)
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
-- [Git](https://git-scm.com/)
+Siga os passos abaixo para rodar o projeto em uma nova máquina.
 
 ### 1. Clonar o Repositório
+
 ```bash
 git clone https://github.com/MoysesTI/sistemagest-o.git
 cd sistemagest-o
 ```
 
 ### 2. Configurar Variáveis de Ambiente
+
+Copie os arquivos de exemplo para produção:
+
 ```bash
-# Copiar o arquivo de exemplo
+# Windows
+copy .env.example .env
+copy .env.example backend\.env
+
+# Linux/Mac
 cp .env.example .env
 cp .env.example backend/.env
 ```
 
-### 3. Subir o Banco de Dados
+### 3. Iniciar Banco de Dados
+
+Suba o container do PostgreSQL com Docker:
+
 ```bash
 docker-compose up -d
 ```
-> PostgreSQL rodará na porta **5433** e pgAdmin na **5050**
 
-### 4. Configurar o Backend
+### 4. Configurar Backend
+
+Instale as dependências e configure o banco de dados:
+
 ```bash
 cd backend
 npm install
-npx prisma generate
-npx prisma migrate dev --name init
-npm run prisma:seed
-```
 
-### 5. Iniciar o Servidor
-```bash
+# Gerar cliente Prisma
+npx prisma generate
+
+# Criar tabelas no banco (Migrations)
+npx prisma migrate dev --name init
+
+# Popular banco com dados iniciais (Seed)
+npm run prisma:seed
+
+# Iniciar backend (Porta 5001)
 npm run dev
 ```
-> API disponível em http://localhost:5001
 
-### 6. Acessar o Sistema
-Abra o arquivo `login.html` no navegador ou use a extensão Live Server do VS Code.
+### 5. Iniciar Frontend
 
----
-
-## 🔑 Credenciais Padrão
-
-| Perfil | Email | Senha |
-|--------|-------|-------|
-| **Admin** | admin@prismatech.com | admin123 |
-| **Professor** | professor@prismatech.com | prof123 |
-
----
-
-## 📁 Estrutura
-
-```
-├── docker-compose.yml      # PostgreSQL + pgAdmin
-├── .env.example            # Template de variáveis
-├── api.js                  # Cliente API (frontend)
-├── index.html              # Dashboard
-├── login.html              # Página de login
-├── cadastro.html           # Cadastro de professor
-├── styles.css              # Estilos
-├── script.js               # Lógica frontend
-└── backend/
-    ├── package.json
-    ├── server.js           # API Express
-    └── prisma/
-        ├── schema.prisma   # Modelo do banco
-        └── seed.js         # Dados iniciais
-```
-
----
-
-## 🔌 API Endpoints
-
-| Método | Endpoint | Descrição |
-|--------|----------|-----------|
-| POST | /api/auth/login | Login |
-| POST | /api/auth/register | Cadastro |
-| GET | /api/turmas | Listar turmas |
-| POST | /api/turmas | Criar turma |
-| GET | /api/horas | Horas trabalhadas |
-| GET | /api/dashboard/stats | Estatísticas |
-
----
-
-## 👤 Perfis de Acesso
-
-### Administrador
-- Acesso total a todos os dados
-- Gerencia professores, cursos e turmas
-- Visualiza horas de todos
-
-### Professor
-- Visualiza apenas suas turmas
-- Registra tarefas e horas
-- Não acessa dados de outros
-
----
-
-## 🔧 Comandos Úteis
+Em outro terminal, na raiz do projeto:
 
 ```bash
-# Visualizar banco com Prisma Studio
-npm run prisma:studio
-
-# Resetar banco de dados
-npx prisma migrate reset
-
-# Logs do Docker
-docker-compose logs -f postgres
+# Requer npx instalado
+npx -y http-server . -p 3000 -c-1
 ```
+
+Acesse o sistema em: http://localhost:3000
 
 ---
 
-## 📄 Licença
+## 📦 Estrutura do Projeto
 
-MIT License - PrismaTech Code Academy
+- **/js**: Módulos do frontend (dashboard, turmas, cronograma, etc.)
+- **/backend**: API Node.js com Express e Prisma
+- **/prisma**: Schema do banco de dados e migrações
+
+## 🛠️ Tecnologias
+
+- **Frontend**: HTML5, CSS3, JavaScript (Modular)
+- **Backend**: Node.js, Express
+- **Database**: PostgreSQL, Prisma ORM
+- **Infra**: Docker Compose
+
+## 👤 Credenciais Padrão (Seed)
+
+- **Email**: admin@prismatech.com.br
+- **Senha**: admin123

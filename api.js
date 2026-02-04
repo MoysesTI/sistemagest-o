@@ -1,324 +1,194 @@
-// ==========================================
-// API CLIENT - COMUNICAÇÃO COM BACKEND
-// PrismaTech Code Academy
-// ==========================================
+const API_BASE = 'http://localhost:5001/api';
 
-const API_URL = 'http://localhost:5001/api';
+const API = {
+    getToken: () => localStorage.getItem('auth_token'),
+    setToken: (token) => localStorage.setItem('auth_token', token),
+    removeToken: () => localStorage.removeItem('auth_token'),
 
-// ==========================================
-// GERENCIAMENTO DE TOKEN
-// ==========================================
+    getCurrentUser: () => {
+        const user = localStorage.getItem('user');
+        return user ? JSON.parse(user) : null;
+    },
 
-function getToken() {
-    return localStorage.getItem('prismatech_token');
-}
+    setUser: (user) => localStorage.setItem('user', JSON.stringify(user)),
+    removeUser: () => localStorage.removeItem('user'),
+    isAdmin: () => API.getCurrentUser()?.role === 'ADMIN',
 
-function setToken(token) {
-    localStorage.setItem('prismatech_token', token);
-}
-
-function removeToken() {
-    localStorage.removeItem('prismatech_token');
-    localStorage.removeItem('prismatech_user');
-}
-
-function getCurrentUser() {
-    const userStr = localStorage.getItem('prismatech_user');
-    return userStr ? JSON.parse(userStr) : null;
-}
-
-function setCurrentUser(user) {
-    localStorage.setItem('prismatech_user', JSON.stringify(user));
-}
-
-function isAdmin() {
-    const user = getCurrentUser();
-    return user && user.role === 'ADMIN';
-}
-
-function isLoggedIn() {
-    return !!getToken();
-}
-
-// ==========================================
-// REQUISIÇÕES HTTP
-// ==========================================
-
-async function apiRequest(endpoint, options = {}) {
-    const token = getToken();
-
-    const config = {
-        ...options,
-        headers: {
+    async request(endpoint, options = {}) {
+        const token = API.getToken();
+        const headers = {
             'Content-Type': 'application/json',
-            ...options.headers
-        }
-    };
+            ...(token && { 'Authorization': `Bearer ${token}` })
+        };
 
-    if (token) {
-        config.headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    try {
-        const response = await fetch(`${API_URL}${endpoint}`, config);
+        const response = await fetch(`${API_BASE}${endpoint}`, {
+            ...options,
+            headers: { ...headers, ...options.headers }
+        });
 
         if (response.status === 401) {
-            // Token expirado ou inválido
-            removeToken();
-            window.location.href = 'login.html';
-            throw new Error('Sessão expirada');
+            API.logout();
+            return null;
         }
 
         const data = await response.json();
-
-        if (!response.ok) {
-            throw new Error(data.error || 'Erro na requisição');
-        }
-
+        if (!response.ok) throw new Error(data.error || 'Erro na requisição');
         return data;
-    } catch (error) {
-        console.error('Erro na API:', error);
-        throw error;
-    }
-}
+    },
 
-// ==========================================
-// AUTENTICAÇÃO
-// ==========================================
-
-const authAPI = {
     async login(email, senha) {
-        const response = await apiRequest('/auth/login', {
+        const data = await API.request('/auth/login', {
             method: 'POST',
             body: JSON.stringify({ email, senha })
         });
-
-        setToken(response.token);
-        setCurrentUser(response.user);
-
-        return response;
+        if (data) {
+            API.setToken(data.token);
+            API.setUser(data.user);
+        }
+        return data;
     },
 
     async register(dados) {
-        const response = await apiRequest('/auth/register', {
+        const data = await API.request('/auth/register', {
             method: 'POST',
             body: JSON.stringify(dados)
         });
-
-        setToken(response.token);
-        setCurrentUser(response.user);
-
-        return response;
-    },
-
-    async me() {
-        return apiRequest('/auth/me');
+        if (data) {
+            API.setToken(data.token);
+            API.setUser(data.user);
+        }
+        return data;
     },
 
     logout() {
-        removeToken();
+        API.removeToken();
+        API.removeUser();
         window.location.href = 'login.html';
-    }
-};
-
-// ==========================================
-// CURSOS
-// ==========================================
-
-const cursosAPI = {
-    async listar() {
-        return apiRequest('/cursos');
     },
 
-    async criar(dados) {
-        return apiRequest('/cursos', {
-            method: 'POST',
-            body: JSON.stringify(dados)
-        });
-    },
-
-    async atualizar(id, dados) {
-        return apiRequest(`/cursos/${id}`, {
-            method: 'PUT',
-            body: JSON.stringify(dados)
-        });
-    }
-};
-
-// ==========================================
-// TURMAS
-// ==========================================
-
-const turmasAPI = {
-    async listar() {
-        return apiRequest('/turmas');
-    },
-
-    async criar(dados) {
-        return apiRequest('/turmas', {
-            method: 'POST',
-            body: JSON.stringify(dados)
-        });
-    },
-
-    async atualizar(id, dados) {
-        return apiRequest(`/turmas/${id}`, {
-            method: 'PUT',
-            body: JSON.stringify(dados)
-        });
-    },
-
-    async excluir(id) {
-        return apiRequest(`/turmas/${id}`, {
-            method: 'DELETE'
-        });
-    },
-
-    async avancarAula(id) {
-        return apiRequest(`/turmas/${id}/avancar`, {
-            method: 'POST'
-        });
-    }
-};
-
-// ==========================================
-// USUÁRIOS/PROFESSORES
-// ==========================================
-
-const usersAPI = {
-    async listar() {
-        return apiRequest('/users');
-    },
-
-    async buscar(id) {
-        return apiRequest(`/users/${id}`);
-    }
-};
-
-// ==========================================
-// CRONOGRAMA
-// ==========================================
-
-const cronogramaAPI = {
-    async listar(dataInicio, dataFim) {
-        let url = '/cronograma';
-        if (dataInicio && dataFim) {
-            url += `?dataInicio=${dataInicio}&dataFim=${dataFim}`;
+    async checkAuth() {
+        if (!API.getToken()) return false;
+        try {
+            const data = await API.request('/auth/me');
+            if (data) API.setUser(data.user);
+            return !!data;
+        } catch {
+            return false;
         }
-        return apiRequest(url);
     },
 
-    async criar(dados) {
-        return apiRequest('/cronograma', {
+    users: {
+        listar: () => API.request('/users'),
+        buscar: (id) => API.request(`/users/${id}`),
+        atualizar: (id, dados) => API.request(`/users/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(dados)
+        }),
+        alterarSenha: (id, senhaAtual, senhaNova) => API.request(`/users/${id}/senha`, {
+            method: 'PUT',
+            body: JSON.stringify({ senhaAtual, senhaNova })
+        })
+    },
+
+    cursos: {
+        listar: () => API.request('/cursos'),
+        criar: (dados) => API.request('/cursos', {
             method: 'POST',
             body: JSON.stringify(dados)
-        });
-    }
-};
-
-// ==========================================
-// TAREFAS
-// ==========================================
-
-const tarefasAPI = {
-    async listar() {
-        return apiRequest('/tarefas');
-    },
-
-    async criar(dados) {
-        return apiRequest('/tarefas', {
+        }),
+        atualizar: (id, dados) => API.request(`/cursos/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(dados)
+        }),
+        excluir: (id) => API.request(`/cursos/${id}`, { method: 'DELETE' }),
+        criarModulo: (cursoId, dados) => API.request(`/cursos/${cursoId}/modulos`, {
             method: 'POST',
             body: JSON.stringify(dados)
-        });
+        }),
+        atualizarModulo: (moduloId, dados) => API.request(`/modulos/${moduloId}`, {
+            method: 'PUT',
+            body: JSON.stringify(dados)
+        }),
+        excluirModulo: (moduloId) => API.request(`/modulos/${moduloId}`, { method: 'DELETE' }),
+        criarAula: (moduloId, dados) => API.request(`/modulos/${moduloId}/aulas`, {
+            method: 'POST',
+            body: JSON.stringify(dados)
+        }),
+        atualizarAula: (aulaId, dados) => API.request(`/aulas/${aulaId}`, {
+            method: 'PUT',
+            body: JSON.stringify(dados)
+        }),
+        excluirAula: (aulaId) => API.request(`/aulas/${aulaId}`, { method: 'DELETE' })
     },
 
-    async concluir(id) {
-        return apiRequest(`/tarefas/${id}/concluir`, {
-            method: 'PUT'
-        });
-    }
-};
-
-// ==========================================
-// HORAS E PAGAMENTOS
-// ==========================================
-
-const horasAPI = {
-    async listar(mes, ano, professorId) {
-        let url = '/horas';
-        const params = new URLSearchParams();
-        if (mes) params.append('mes', mes);
-        if (ano) params.append('ano', ano);
-        if (professorId) params.append('professorId', professorId);
-        if (params.toString()) url += `?${params}`;
-        return apiRequest(url);
-    }
-};
-
-// ==========================================
-// DASHBOARD
-// ==========================================
-
-const dashboardAPI = {
-    async stats() {
-        return apiRequest('/dashboard/stats');
+    turmas: {
+        listar: () => API.request('/turmas'),
+        criar: (dados) => API.request('/turmas', {
+            method: 'POST',
+            body: JSON.stringify(dados)
+        }),
+        atualizar: (id, dados) => API.request(`/turmas/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(dados)
+        }),
+        excluir: (id) => API.request(`/turmas/${id}`, { method: 'DELETE' }),
+        avancarAula: (id) => API.request(`/turmas/${id}/avancar`, { method: 'POST' })
     },
 
-    async aulasHoje() {
-        return apiRequest('/dashboard/aulas-hoje');
-    }
-};
-
-// ==========================================
-// PARÂMETROS
-// ==========================================
-
-const parametrosAPI = {
-    async listar() {
-        return apiRequest('/parametros');
+    cronograma: {
+        listar: (dataInicio, dataFim) => {
+            let url = '/cronograma';
+            if (dataInicio && dataFim) url += `?dataInicio=${dataInicio}&dataFim=${dataFim}`;
+            return API.request(url);
+        },
+        importar: (dataInicio, dataFim) => API.request('/cronograma/importar', {
+            method: 'POST',
+            body: JSON.stringify({ dataInicio, dataFim })
+        }),
+        marcarPresenca: (id) => API.request(`/cronograma/${id}/check`, { method: 'PUT' }),
+        validar: (id, validar, bonus = 0) => API.request(`/cronograma/${id}/validar`, {
+            method: 'PUT',
+            body: JSON.stringify({ validar, bonus })
+        }),
+        porProfessor: (professorId, dataInicio, dataFim) => {
+            let url = `/cronograma/professor/${professorId}`;
+            if (dataInicio && dataFim) url += `?dataInicio=${dataInicio}&dataFim=${dataFim}`;
+            return API.request(url);
+        },
+        recalcular: () => API.request('/cronograma/recalcular', { method: 'POST' })
     },
 
-    async atualizar(chave, valor, descricao) {
-        return apiRequest(`/parametros/${chave}`, {
+    relatorios: {
+        financeiro: (dataInicio, dataFim, professorId) => {
+            const params = [];
+            if (dataInicio) params.push(`dataInicio=${dataInicio}`);
+            if (dataFim) params.push(`dataFim=${dataFim}`);
+            if (professorId) params.push(`professorId=${professorId}`);
+            return API.request('/relatorios/financeiro?' + params.join('&'));
+        }
+    },
+
+    tarefas: {
+        listar: () => API.request('/tarefas-extras'),
+        criar: (dados) => API.request('/tarefas-extras', {
+            method: 'POST',
+            body: JSON.stringify(dados)
+        }),
+        concluir: (id) => API.request(`/tarefas-extras/${id}/concluir`, { method: 'PUT' })
+    },
+
+    dashboard: {
+        stats: () => API.request('/dashboard/stats'),
+        aulasHoje: () => API.request('/dashboard/aulas-hoje')
+    },
+
+    parametros: {
+        listar: () => API.request('/parametros'),
+        atualizar: (chave, valor, descricao) => API.request(`/parametros/${chave}`, {
             method: 'PUT',
             body: JSON.stringify({ valor, descricao })
-        });
+        })
     }
 };
 
-// ==========================================
-// VERIFICAR AUTH NA INICIALIZAÇÃO
-// ==========================================
-
-async function checkAuth() {
-    if (!isLoggedIn()) {
-        return false;
-    }
-
-    try {
-        const response = await authAPI.me();
-        setCurrentUser(response.user);
-        return true;
-    } catch (error) {
-        removeToken();
-        return false;
-    }
-}
-
-// Exportar para uso global
-window.API = {
-    auth: authAPI,
-    cursos: cursosAPI,
-    turmas: turmasAPI,
-    users: usersAPI,
-    cronograma: cronogramaAPI,
-    tarefas: tarefasAPI,
-    horas: horasAPI,
-    dashboard: dashboardAPI,
-    parametros: parametrosAPI,
-    checkAuth,
-    isLoggedIn,
-    isAdmin,
-    getCurrentUser,
-    logout: authAPI.logout
-};
+window.API = API;

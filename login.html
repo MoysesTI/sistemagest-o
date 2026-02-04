@@ -83,7 +83,7 @@
     <script src="api.js"></script>
     <script>
         // Verificar se já está logado
-        if (API.isLoggedIn()) {
+        if (API.getToken()) {
             window.location.href = 'index.html';
         }
 
@@ -102,7 +102,7 @@
             errorDiv.style.display = 'none';
 
             try {
-                await API.auth.login(email, senha);
+                await API.login(email, senha);
                 window.location.href = 'index.html';
             } catch (error) {
                 errorDiv.style.display = 'flex';
@@ -113,6 +113,7 @@
             }
         });
     </script>
+
 
     <style>
         .auth-error {

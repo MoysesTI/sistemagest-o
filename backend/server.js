@@ -1,11 +1,13 @@
 // ==========================================
-// SERVER.JS - API BACKEND
+// SERVER.JS - API BACKEND v2.0
 // PrismaTech Code Academy
 // ==========================================
 
-require('dotenv').config({ path: '../.env' });
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -15,11 +17,20 @@ const prisma = new PrismaClient();
 const PORT = process.env.PORT || 5001;
 
 // ==========================================
-// MIDDLEWARE
+// MIDDLEWARE DE SEGURANÇA
 // ==========================================
 
+app.use(helmet());
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    message: { error: 'Muitas requisições. Tente novamente em 15 minutos.' }
+});
+app.use('/api/', limiter);
+
 
 // Middleware de autenticação
 const authMiddleware = async (req, res, next) => {
@@ -57,21 +68,12 @@ const adminMiddleware = (req, res, next) => {
 // ROTAS DE AUTENTICAÇÃO
 // ==========================================
 
-// Login
 app.post('/api/auth/login', async (req, res) => {
     try {
         const { email, senha } = req.body;
+        const user = await prisma.user.findUnique({ where: { email } });
 
-        const user = await prisma.user.findUnique({
-            where: { email }
-        });
-
-        if (!user) {
-            return res.status(401).json({ error: 'Email ou senha incorretos' });
-        }
-
-        const validPassword = await bcrypt.compare(senha, user.senha);
-        if (!validPassword) {
+        if (!user || !await bcrypt.compare(senha, user.senha)) {
             return res.status(401).json({ error: 'Email ou senha incorretos' });
         }
 
@@ -87,12 +89,7 @@ app.post('/api/auth/login', async (req, res) => {
 
         res.json({
             token,
-            user: {
-                id: user.id,
-                nome: user.nome,
-                email: user.email,
-                role: user.role
-            }
+            user: { id: user.id, nome: user.nome, email: user.email, role: user.role }
         });
     } catch (error) {
         console.error('Erro no login:', error);
@@ -100,29 +97,18 @@ app.post('/api/auth/login', async (req, res) => {
     }
 });
 
-// Cadastro
 app.post('/api/auth/register', async (req, res) => {
     try {
         const { nome, email, senha, telefone, cnpj, razaoSocial } = req.body;
 
-        const existingUser = await prisma.user.findUnique({
-            where: { email }
-        });
-
-        if (existingUser) {
+        if (await prisma.user.findUnique({ where: { email } })) {
             return res.status(400).json({ error: 'Email já cadastrado' });
         }
 
         const hashedPassword = await bcrypt.hash(senha, 10);
-
         const user = await prisma.user.create({
             data: {
-                nome,
-                email,
-                senha: hashedPassword,
-                telefone,
-                cnpj,
-                razaoSocial,
+                nome, email, senha: hashedPassword, telefone, cnpj, razaoSocial,
                 role: 'PROFESSOR',
                 certificadoMEI: !!cnpj
             }
@@ -136,12 +122,7 @@ app.post('/api/auth/register', async (req, res) => {
 
         res.status(201).json({
             token,
-            user: {
-                id: user.id,
-                nome: user.nome,
-                email: user.email,
-                role: user.role
-            }
+            user: { id: user.id, nome: user.nome, email: user.email, role: user.role }
         });
     } catch (error) {
         console.error('Erro no cadastro:', error);
@@ -149,40 +130,25 @@ app.post('/api/auth/register', async (req, res) => {
     }
 });
 
-// Verificar token
 app.get('/api/auth/me', authMiddleware, async (req, res) => {
-    res.json({
-        user: {
-            id: req.user.id,
-            nome: req.user.nome,
-            email: req.user.email,
-            role: req.user.role,
-            telefone: req.user.telefone,
-            cnpj: req.user.cnpj,
-            razaoSocial: req.user.razaoSocial,
-            certificadoMEI: req.user.certificadoMEI
-        }
-    });
+    res.json({ user: req.user });
 });
 
 // ==========================================
-// ROTAS DE USUÁRIOS (ADMIN)
+// ROTAS DE USUÁRIOS/PROFESSORES
 // ==========================================
 
-app.get('/api/users', authMiddleware, adminMiddleware, async (req, res) => {
+app.get('/api/users', authMiddleware, async (req, res) => {
     try {
+        // Professor só vê a si mesmo
+        const where = req.user.role === 'ADMIN' ? {} : { id: req.user.id };
+
         const users = await prisma.user.findMany({
+            where,
             select: {
-                id: true,
-                nome: true,
-                email: true,
-                role: true,
-                telefone: true,
-                cnpj: true,
-                razaoSocial: true,
-                certificadoMEI: true,
-                ativo: true,
-                createdAt: true
+                id: true, nome: true, email: true, role: true, telefone: true,
+                cnpj: true, razaoSocial: true, certificadoMEI: true, ativo: true, createdAt: true,
+                _count: { select: { turmas: true } }
             },
             orderBy: { nome: 'asc' }
         });
@@ -202,27 +168,78 @@ app.get('/api/users/:id', authMiddleware, async (req, res) => {
 
         const user = await prisma.user.findUnique({
             where: { id: req.params.id },
-            select: {
-                id: true,
-                nome: true,
-                email: true,
-                role: true,
-                telefone: true,
-                cnpj: true,
-                razaoSocial: true,
-                certificadoMEI: true,
-                ativo: true,
-                createdAt: true
+            include: {
+                modulosLecionados: { include: { modulo: { include: { curso: true } } } },
+                _count: { select: { turmas: true, registrosHora: true } }
             }
         });
 
-        if (!user) {
-            return res.status(404).json({ error: 'Usuário não encontrado' });
+        if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
+        res.json(user);
+    } catch (error) {
+        console.error('Erro ao buscar usuário:', error);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+app.put('/api/users/:id', authMiddleware, async (req, res) => {
+    try {
+        if (req.user.role !== 'ADMIN' && req.user.id !== req.params.id) {
+            return res.status(403).json({ error: 'Acesso negado' });
+        }
+
+        const { nome, telefone, cnpj, razaoSocial, modulosIds } = req.body;
+
+        const user = await prisma.user.update({
+            where: { id: req.params.id },
+            data: { nome, telefone, cnpj, razaoSocial, certificadoMEI: !!cnpj }
+        });
+
+        // Atualizar módulos lecionados
+        if (modulosIds && req.user.role === 'ADMIN') {
+            await prisma.professorModulo.deleteMany({ where: { professorId: req.params.id } });
+            for (const moduloId of modulosIds) {
+                await prisma.professorModulo.create({
+                    data: { professorId: req.params.id, moduloId }
+                });
+            }
         }
 
         res.json(user);
     } catch (error) {
-        console.error('Erro ao buscar usuário:', error);
+        console.error('Erro ao atualizar usuário:', error);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+app.put('/api/users/:id/senha', authMiddleware, async (req, res) => {
+    try {
+        // Usuário só pode alterar própria senha
+        if (req.user.id !== req.params.id) {
+            return res.status(403).json({ error: 'Acesso negado' });
+        }
+
+        const { senhaAtual, senhaNova } = req.body;
+
+        const user = await prisma.user.findUnique({ where: { id: req.params.id } });
+        if (!user) {
+            return res.status(404).json({ error: 'Usuário não encontrado' });
+        }
+
+        const senhaValida = await bcrypt.compare(senhaAtual, user.senha);
+        if (!senhaValida) {
+            return res.status(400).json({ error: 'Senha atual incorreta' });
+        }
+
+        const hashedSenha = await bcrypt.hash(senhaNova, 10);
+        await prisma.user.update({
+            where: { id: req.params.id },
+            data: { senha: hashedSenha }
+        });
+
+        res.json({ message: 'Senha alterada com sucesso' });
+    } catch (error) {
+        console.error('Erro ao alterar senha:', error);
         res.status(500).json({ error: 'Erro interno do servidor' });
     }
 });
@@ -231,6 +248,7 @@ app.get('/api/users/:id', authMiddleware, async (req, res) => {
 // ROTAS DE CURSOS
 // ==========================================
 
+
 app.get('/api/cursos', authMiddleware, async (req, res) => {
     try {
         const cursos = await prisma.curso.findMany({
@@ -238,16 +256,12 @@ app.get('/api/cursos', authMiddleware, async (req, res) => {
             include: {
                 modulos: {
                     where: { ativo: true },
-                    include: {
-                        aulas: {
-                            where: { ativo: true },
-                            orderBy: { numero: 'asc' }
-                        }
-                    },
+                    include: { aulas: { where: { ativo: true }, orderBy: { numero: 'asc' } } },
                     orderBy: { ordem: 'asc' }
-                }
+                },
+                _count: { select: { turmas: true } }
             },
-            orderBy: { nome: 'asc' }
+            orderBy: { ordem: 'asc' }
         });
         res.json(cursos);
     } catch (error) {
@@ -258,10 +272,11 @@ app.get('/api/cursos', authMiddleware, async (req, res) => {
 
 app.post('/api/cursos', authMiddleware, adminMiddleware, async (req, res) => {
     try {
-        const { codigo, nome, descricao, cor, nivel } = req.body;
+        const { codigo, nome, descricao, cor, arquivoReferencia } = req.body;
+        const maxOrdem = await prisma.curso.aggregate({ _max: { ordem: true } });
 
         const curso = await prisma.curso.create({
-            data: { codigo, nome, descricao, cor, nivel }
+            data: { codigo, nome, descricao, cor, arquivoReferencia, ordem: (maxOrdem._max.ordem || 0) + 1 }
         });
 
         res.status(201).json(curso);
@@ -273,16 +288,24 @@ app.post('/api/cursos', authMiddleware, adminMiddleware, async (req, res) => {
 
 app.put('/api/cursos/:id', authMiddleware, adminMiddleware, async (req, res) => {
     try {
-        const { codigo, nome, descricao, cor, nivel, ativo } = req.body;
-
+        const { codigo, nome, descricao, cor, arquivoReferencia, ordem, ativo } = req.body;
         const curso = await prisma.curso.update({
             where: { id: req.params.id },
-            data: { codigo, nome, descricao, cor, nivel, ativo }
+            data: { codigo, nome, descricao, cor, arquivoReferencia, ordem, ativo }
         });
-
         res.json(curso);
     } catch (error) {
         console.error('Erro ao atualizar curso:', error);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+app.delete('/api/cursos/:id', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        await prisma.curso.delete({ where: { id: req.params.id } });
+        res.json({ message: 'Curso excluído com sucesso' });
+    } catch (error) {
+        console.error('Erro ao excluir curso:', error);
         res.status(500).json({ error: 'Erro interno do servidor' });
     }
 });
@@ -291,12 +314,20 @@ app.put('/api/cursos/:id', authMiddleware, adminMiddleware, async (req, res) => 
 // ROTAS DE MÓDULOS
 // ==========================================
 
-app.post('/api/modulos', authMiddleware, adminMiddleware, async (req, res) => {
+app.post('/api/cursos/:cursoId/modulos', authMiddleware, async (req, res) => {
     try {
-        const { cursoId, codigo, nome, descricao, ordem } = req.body;
+        const { codigo, nome, descricao, arquivoReferencia } = req.body;
+        const maxOrdem = await prisma.modulo.aggregate({
+            where: { cursoId: req.params.cursoId },
+            _max: { ordem: true }
+        });
 
         const modulo = await prisma.modulo.create({
-            data: { cursoId, codigo, nome, descricao, ordem }
+            data: {
+                cursoId: req.params.cursoId,
+                codigo, nome, descricao, arquivoReferencia,
+                ordem: (maxOrdem._max.ordem || 0) + 1
+            }
         });
 
         res.status(201).json(modulo);
@@ -306,21 +337,77 @@ app.post('/api/modulos', authMiddleware, adminMiddleware, async (req, res) => {
     }
 });
 
+app.put('/api/modulos/:id', authMiddleware, async (req, res) => {
+    try {
+        const { codigo, nome, descricao, arquivoReferencia, ordem, ativo } = req.body;
+        const modulo = await prisma.modulo.update({
+            where: { id: req.params.id },
+            data: { codigo, nome, descricao, arquivoReferencia, ordem, ativo }
+        });
+        res.json(modulo);
+    } catch (error) {
+        console.error('Erro ao atualizar módulo:', error);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+app.delete('/api/modulos/:id', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        await prisma.modulo.delete({ where: { id: req.params.id } });
+        res.json({ message: 'Módulo excluído com sucesso' });
+    } catch (error) {
+        console.error('Erro ao excluir módulo:', error);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
 // ==========================================
 // ROTAS DE AULAS
 // ==========================================
 
-app.post('/api/aulas', authMiddleware, adminMiddleware, async (req, res) => {
+app.post('/api/modulos/:moduloId/aulas', authMiddleware, async (req, res) => {
     try {
-        const { moduloId, numero, titulo, topicos, duracao } = req.body;
+        const { titulo, descricao, duracao, topicos, arquivoReferencia } = req.body;
+        const maxNumero = await prisma.aula.aggregate({
+            where: { moduloId: req.params.moduloId },
+            _max: { numero: true }
+        });
 
         const aula = await prisma.aula.create({
-            data: { moduloId, numero, titulo, topicos, duracao }
+            data: {
+                moduloId: req.params.moduloId,
+                numero: (maxNumero._max.numero || 0) + 1,
+                titulo, descricao, duracao, topicos: topicos || [], arquivoReferencia
+            }
         });
 
         res.status(201).json(aula);
     } catch (error) {
         console.error('Erro ao criar aula:', error);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+app.put('/api/aulas/:id', authMiddleware, async (req, res) => {
+    try {
+        const { titulo, descricao, duracao, topicos, arquivoReferencia, imagemSlide, ativo } = req.body;
+        const aula = await prisma.aula.update({
+            where: { id: req.params.id },
+            data: { titulo, descricao, duracao, topicos, arquivoReferencia, imagemSlide, ativo }
+        });
+        res.json(aula);
+    } catch (error) {
+        console.error('Erro ao atualizar aula:', error);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+app.delete('/api/aulas/:id', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        await prisma.aula.delete({ where: { id: req.params.id } });
+        res.json({ message: 'Aula excluída com sucesso' });
+    } catch (error) {
+        console.error('Erro ao excluir aula:', error);
         res.status(500).json({ error: 'Erro interno do servidor' });
     }
 });
@@ -331,22 +418,14 @@ app.post('/api/aulas', authMiddleware, adminMiddleware, async (req, res) => {
 
 app.get('/api/turmas', authMiddleware, async (req, res) => {
     try {
-        const where = req.user.role === 'ADMIN'
-            ? {}
-            : { professorId: req.user.id };
+        const where = req.user.role === 'ADMIN' ? {} : { professorId: req.user.id };
 
         const turmas = await prisma.turma.findMany({
             where,
             include: {
-                professor: {
-                    select: { id: true, nome: true, email: true }
-                },
-                curso: {
-                    select: { id: true, nome: true, cor: true, nivel: true }
-                },
-                modulo: {
-                    select: { id: true, nome: true }
-                }
+                professor: { select: { id: true, nome: true, email: true } },
+                curso: { select: { id: true, nome: true, cor: true, modulos: { select: { id: true, nome: true } } } },
+                turmaModulos: { include: { modulo: true } }
             },
             orderBy: { createdAt: 'desc' }
         });
@@ -360,19 +439,24 @@ app.get('/api/turmas', authMiddleware, async (req, res) => {
 
 app.post('/api/turmas', authMiddleware, async (req, res) => {
     try {
-        const { codigo, nome, local, qtdAlunos, diasSemana, horario, cursoId, moduloId } = req.body;
+        const {
+            codigo, nome, local, qtdAlunos, diasSemana,
+            horarioInicio, horarioFim, dataInicio, dataFim,
+            cursoId, professorId
+        } = req.body;
+
+        // Admin pode definir qualquer professor, professor só pode criar para si
+        const professorIdFinal = req.user.role === 'ADMIN' && professorId ? professorId : req.user.id;
 
         const turma = await prisma.turma.create({
             data: {
-                codigo,
-                nome,
-                local,
-                qtdAlunos,
-                diasSemana,
-                horario,
-                professorId: req.user.id,
+                codigo, nome, local, qtdAlunos,
+                diasSemana, horarioInicio, horarioFim,
+                dataInicio: new Date(dataInicio),
+                dataFim: new Date(dataFim),
+                professorId: professorIdFinal,
                 cursoId,
-                moduloId
+                status: 'ATIVA'
             },
             include: {
                 professor: { select: { id: true, nome: true } },
@@ -387,17 +471,12 @@ app.post('/api/turmas', authMiddleware, async (req, res) => {
     }
 });
 
+
 app.put('/api/turmas/:id', authMiddleware, async (req, res) => {
     try {
-        const turma = await prisma.turma.findUnique({
-            where: { id: req.params.id }
-        });
+        const turma = await prisma.turma.findUnique({ where: { id: req.params.id } });
+        if (!turma) return res.status(404).json({ error: 'Turma não encontrada' });
 
-        if (!turma) {
-            return res.status(404).json({ error: 'Turma não encontrada' });
-        }
-
-        // Professor só pode editar próprias turmas
         if (req.user.role !== 'ADMIN' && turma.professorId !== req.user.id) {
             return res.status(403).json({ error: 'Acesso negado' });
         }
@@ -416,22 +495,14 @@ app.put('/api/turmas/:id', authMiddleware, async (req, res) => {
 
 app.delete('/api/turmas/:id', authMiddleware, async (req, res) => {
     try {
-        const turma = await prisma.turma.findUnique({
-            where: { id: req.params.id }
-        });
-
-        if (!turma) {
-            return res.status(404).json({ error: 'Turma não encontrada' });
-        }
+        const turma = await prisma.turma.findUnique({ where: { id: req.params.id } });
+        if (!turma) return res.status(404).json({ error: 'Turma não encontrada' });
 
         if (req.user.role !== 'ADMIN' && turma.professorId !== req.user.id) {
             return res.status(403).json({ error: 'Acesso negado' });
         }
 
-        await prisma.turma.delete({
-            where: { id: req.params.id }
-        });
-
+        await prisma.turma.delete({ where: { id: req.params.id } });
         res.json({ message: 'Turma excluída com sucesso' });
     } catch (error) {
         console.error('Erro ao excluir turma:', error);
@@ -439,7 +510,7 @@ app.delete('/api/turmas/:id', authMiddleware, async (req, res) => {
     }
 });
 
-// Avançar aula
+// Avançar aula da turma
 app.post('/api/turmas/:id/avancar', authMiddleware, async (req, res) => {
     try {
         const turma = await prisma.turma.findUnique({
@@ -447,17 +518,13 @@ app.post('/api/turmas/:id/avancar', authMiddleware, async (req, res) => {
             include: { curso: { include: { modulos: { include: { aulas: true } } } } }
         });
 
-        if (!turma) {
-            return res.status(404).json({ error: 'Turma não encontrada' });
-        }
+        if (!turma) return res.status(404).json({ error: 'Turma não encontrada' });
 
         if (req.user.role !== 'ADMIN' && turma.professorId !== req.user.id) {
             return res.status(403).json({ error: 'Acesso negado' });
         }
 
-        // Calcular total de aulas do curso
         const totalAulas = turma.curso.modulos.reduce((acc, mod) => acc + mod.aulas.length, 0);
-
         if (turma.aulaAtual >= totalAulas) {
             return res.status(400).json({ error: 'Curso já concluído' });
         }
@@ -465,17 +532,17 @@ app.post('/api/turmas/:id/avancar', authMiddleware, async (req, res) => {
         const novaAula = turma.aulaAtual + 1;
         const novoStatus = novaAula >= totalAulas ? 'CONCLUIDA' : 'ATIVA';
 
-        // Registrar hora da aula
+        // Registrar hora
         const valorHora = parseFloat(process.env.VALOR_HORA_AULA) || 27.00;
-        const duracaoMinutos = 150; // 2h30min padrão
+        const duracaoMinutos = 150;
 
         await prisma.registroHora.create({
             data: {
                 professorId: turma.professorId,
                 turmaId: turma.id,
                 data: new Date(),
-                horaInicio: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-                horaFim: new Date(Date.now() + duracaoMinutos * 60000).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+                horaInicio: turma.horarioInicio,
+                horaFim: turma.horarioFim,
                 duracaoMinutos,
                 tipo: 'AULA',
                 valorHora,
@@ -502,103 +569,526 @@ app.post('/api/turmas/:id/avancar', authMiddleware, async (req, res) => {
 app.get('/api/cronograma', authMiddleware, async (req, res) => {
     try {
         const { dataInicio, dataFim } = req.query;
-
-        const where = {
-            professorId: req.user.role === 'ADMIN' ? undefined : req.user.id
-        };
+        const where = { professorId: req.user.role === 'ADMIN' ? undefined : req.user.id };
 
         if (dataInicio && dataFim) {
-            where.data = {
-                gte: new Date(dataInicio),
-                lte: new Date(dataFim)
-            };
+            where.data = { gte: new Date(dataInicio), lte: new Date(dataFim) };
         }
 
-        const cronogramas = await prisma.cronograma.findMany({
+        const items = await prisma.cronogramaItem.findMany({
             where,
             include: {
                 professor: { select: { id: true, nome: true } },
-                turma: {
-                    select: {
-                        id: true,
-                        nome: true,
-                        curso: { select: { nome: true, cor: true } }
-                    }
-                }
+                turma: { select: { id: true, nome: true, curso: { select: { nome: true, cor: true } } } },
+                tarefaExtra: true
             },
-            orderBy: { data: 'asc' }
+            orderBy: [{ data: 'asc' }, { horaInicio: 'asc' }]
         });
 
-        res.json(cronogramas);
+        res.json(items);
     } catch (error) {
         console.error('Erro ao buscar cronograma:', error);
         res.status(500).json({ error: 'Erro interno do servidor' });
     }
 });
 
-// ==========================================
-// ROTAS DE TAREFAS
-// ==========================================
-
-app.get('/api/tarefas', authMiddleware, async (req, res) => {
+// Importar turmas para o cronograma (usa datas da própria turma)
+app.post('/api/cronograma/importar', authMiddleware, async (req, res) => {
     try {
-        const where = req.user.role === 'ADMIN'
-            ? {}
-            : { professorId: req.user.id };
+        // Buscar turmas ativas do professor logado
+        const turmas = await prisma.turma.findMany({
+            where: {
+                professorId: req.user.id,
+                status: { in: ['PENDENTE', 'ATIVA'] }
+            },
+            include: {
+                curso: { select: { nome: true } }
+            }
+        });
 
-        const tarefas = await prisma.tarefa.findMany({
+        if (turmas.length === 0) {
+            return res.json({ message: 'Nenhuma turma encontrada para importar', criados: 0 });
+        }
+
+        let criados = 0;
+
+        const diasMap = {
+            'DOMINGO': 0, 'SEGUNDA': 1, 'TERCA': 2, 'QUARTA': 3,
+            'QUINTA': 4, 'SEXTA': 5, 'SABADO': 6
+        };
+
+        for (const turma of turmas) {
+            // Usar datas da própria turma
+            const inicio = new Date(turma.dataInicio);
+            const fim = new Date(turma.dataFim);
+
+            // Iterar por cada dia desde o início até o fim do curso
+            for (let d = new Date(inicio); d <= fim; d.setDate(d.getDate() + 1)) {
+                const diaSemanaJS = d.getDay();
+                const diaSemana = Object.keys(diasMap).find(k => diasMap[k] === diaSemanaJS);
+
+                // Se este dia está nos dias da semana da turma
+                if (turma.diasSemana.includes(diaSemana)) {
+                    // Verifica se já existe entrada para esta turma nesta data
+                    const existente = await prisma.cronogramaItem.findFirst({
+                        where: {
+                            professorId: req.user.id,
+                            turmaId: turma.id,
+                            data: {
+                                gte: new Date(d.toISOString().split('T')[0] + 'T00:00:00Z'),
+                                lt: new Date(d.toISOString().split('T')[0] + 'T23:59:59Z')
+                            }
+                        }
+                    });
+
+                    if (!existente) {
+                        await prisma.cronogramaItem.create({
+                            data: {
+                                professorId: req.user.id,
+                                turmaId: turma.id,
+                                data: new Date(d.toISOString().split('T')[0]),
+                                horaInicio: turma.horarioInicio,
+                                horaFim: turma.horarioFim,
+                                descricao: `${turma.nome} - ${turma.curso.nome}`
+                            }
+                        });
+                        criados++;
+                    }
+                }
+            }
+        }
+
+        res.json({
+            message: `${criados} aulas adicionadas ao cronograma`,
+            criados,
+            turmasProcessadas: turmas.length
+        });
+    } catch (error) {
+        console.error('Erro ao importar cronograma:', error);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+// Buscar um item do cronograma por ID
+app.get('/api/cronograma/:id', authMiddleware, async (req, res) => {
+    try {
+        const item = await prisma.cronogramaItem.findUnique({
+            where: { id: req.params.id },
+            include: {
+                professor: { select: { id: true, nome: true } },
+                turma: { select: { id: true, nome: true, curso: { select: { nome: true, cor: true } } } },
+                tarefaExtra: true
+            }
+        });
+
+        if (!item) {
+            return res.status(404).json({ error: 'Item não encontrado' });
+        }
+
+        // Verificar permissão (admin ou próprio professor)
+        if (req.user.role !== 'ADMIN' && item.professorId !== req.user.id) {
+            return res.status(403).json({ error: 'Acesso negado' });
+        }
+
+        res.json(item);
+    } catch (error) {
+        console.error('Erro ao buscar item do cronograma:', error);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+// Atualizar um item do cronograma
+app.put('/api/cronograma/:id', authMiddleware, async (req, res) => {
+    try {
+        const { tipo, data, titulo, horaInicio, horaFim, descricao } = req.body;
+
+        const item = await prisma.cronogramaItem.findUnique({
+            where: { id: req.params.id },
+            include: { tarefaExtra: true }
+        });
+
+        if (!item) {
+            return res.status(404).json({ error: 'Item não encontrado' });
+        }
+
+        // Verificar permissão (admin ou próprio professor)
+        if (req.user.role !== 'ADMIN' && item.professorId !== req.user.id) {
+            return res.status(403).json({ error: 'Acesso negado' });
+        }
+
+        // Atualizar dados do cronograma item
+        const updatedItem = await prisma.cronogramaItem.update({
+            where: { id: req.params.id },
+            data: {
+                data: data ? new Date(data) : undefined,
+                horaInicio,
+                horaFim,
+                descricao: titulo
+            }
+        });
+
+        // Se tem tarefa extra, atualizar também
+        if (item.tarefaExtraId) {
+            await prisma.tarefaExtra.update({
+                where: { id: item.tarefaExtraId },
+                data: {
+                    tipo,
+                    titulo,
+                    descricao
+                }
+            });
+        }
+
+        res.json(updatedItem);
+    } catch (error) {
+        console.error('Erro ao atualizar item do cronograma:', error);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+// Excluir um item do cronograma
+app.delete('/api/cronograma/:id', authMiddleware, async (req, res) => {
+    try {
+        const item = await prisma.cronogramaItem.findUnique({
+            where: { id: req.params.id }
+        });
+
+        if (!item) {
+            return res.status(404).json({ error: 'Item não encontrado' });
+        }
+
+        // Verificar permissão (admin ou próprio professor)
+        if (req.user.role !== 'ADMIN' && item.professorId !== req.user.id) {
+            return res.status(403).json({ error: 'Acesso negado' });
+        }
+
+        // Se tem tarefa extra, excluir também
+        if (item.tarefaExtraId) {
+            await prisma.tarefaExtra.delete({ where: { id: item.tarefaExtraId } });
+        }
+
+        await prisma.cronogramaItem.delete({ where: { id: req.params.id } });
+
+        res.json({ message: 'Item excluído com sucesso' });
+    } catch (error) {
+        console.error('Erro ao excluir item do cronograma:', error);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+
+// Marcar presença (check)
+app.put('/api/cronograma/:id/check', authMiddleware, async (req, res) => {
+    try {
+        const item = await prisma.cronogramaItem.findUnique({ where: { id: req.params.id } });
+        if (!item) return res.status(404).json({ error: 'Item não encontrado' });
+
+        if (req.user.role !== 'ADMIN' && item.professorId !== req.user.id) {
+            return res.status(403).json({ error: 'Acesso negado' });
+        }
+
+        const updated = await prisma.cronogramaItem.update({
+            where: { id: req.params.id },
+            data: { realizada: !item.realizada }
+        });
+
+        // Se marcou como realizada, calcular duração e valor
+        if (updated.realizada) {
+            const [horaIni, minIni] = updated.horaInicio.split(':').map(Number);
+            const [horaFim, minFim] = updated.horaFim.split(':').map(Number);
+            const duracaoMinutos = (horaFim * 60 + minFim) - (horaIni * 60 + minIni);
+            const valorHora = parseFloat(process.env.VALOR_HORA_AULA) || 27.00;
+            const valorCalculado = (duracaoMinutos / 60) * valorHora;
+
+            // Atualizar com valores calculados
+            await prisma.cronogramaItem.update({
+                where: { id: req.params.id },
+                data: { duracaoMinutos, valorCalculado }
+            });
+
+            // Se é uma aula (tem turma), registrar hora
+            if (updated.turmaId) {
+                // Registrar na tabela RegistroHora
+                await prisma.registroHora.create({
+                    data: {
+                        professorId: updated.professorId,
+                        turmaId: updated.turmaId,
+                        data: updated.data,
+                        horaInicio: updated.horaInicio,
+                        horaFim: updated.horaFim,
+                        duracaoMinutos,
+                        tipo: 'AULA',
+                        valorHora,
+                        valorTotal: valorCalculado
+                    }
+                });
+            }
+        }
+
+        res.json(updated);
+    } catch (error) {
+        console.error('Erro ao marcar presença:', error);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+// Validação do Admin - Aprovar/Reprovar tarefa
+app.put('/api/cronograma/:id/validar', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        const { validar, bonus } = req.body; // validar: boolean, bonus: percentual opcional
+        const item = await prisma.cronogramaItem.findUnique({ where: { id: req.params.id } });
+
+        if (!item) return res.status(404).json({ error: 'Item não encontrado' });
+
+        // Calcular duração e valor
+        const [horaIni, minIni] = item.horaInicio.split(':').map(Number);
+        const [horaFim, minFim] = item.horaFim.split(':').map(Number);
+        const duracaoMinutos = (horaFim * 60 + minFim) - (horaIni * 60 + minIni);
+
+        // Buscar valor da hora no banco ou usar padrão
+        const valorHoraParam = await prisma.parametro.findUnique({ where: { chave: 'VALOR_HORA_AULA' } });
+        const valorHora = valorHoraParam ? parseFloat(valorHoraParam.valor) : 27.00;
+
+        // Calcular valor base
+        let valorBase = (duracaoMinutos / 60) * valorHora;
+
+        // Aplicar bônus se fornecido
+        const bonusAplicado = bonus || 0;
+        const valorFinal = valorBase * (1 + bonusAplicado / 100);
+
+        const updated = await prisma.cronogramaItem.update({
+            where: { id: req.params.id },
+            data: {
+                validadoAdmin: validar,
+                validadoPorId: validar ? req.user.id : null,
+                dataValidacao: validar ? new Date() : null,
+                duracaoMinutos,
+                valorCalculado: validar ? valorFinal : null,
+                bonusAplicado: validar ? bonusAplicado : null
+            }
+        });
+
+        res.json(updated);
+    } catch (error) {
+        console.error('Erro ao validar item:', error);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+// Cronograma de um professor específico (Admin only)
+app.get('/api/cronograma/professor/:professorId', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        const { dataInicio, dataFim } = req.query;
+        const where = { professorId: req.params.professorId };
+
+        if (dataInicio && dataFim) {
+            where.data = { gte: new Date(dataInicio), lte: new Date(dataFim) };
+        }
+
+        const items = await prisma.cronogramaItem.findMany({
             where,
             include: {
-                professor: { select: { id: true, nome: true } }
+                professor: { select: { id: true, nome: true } },
+                turma: { select: { id: true, nome: true, curso: { select: { nome: true, cor: true } } } },
+                tarefaExtra: true
             },
+            orderBy: [{ data: 'asc' }, { horaInicio: 'asc' }]
+        });
+
+        res.json(items);
+    } catch (error) {
+        console.error('Erro ao buscar cronograma do professor:', error);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+// Relatório financeiro (Admin only)
+app.get('/api/relatorios/financeiro', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        const { dataInicio, dataFim, professorId } = req.query;
+
+        const where = { realizada: true }; // Itens com check do professor
+        if (professorId) where.professorId = professorId;
+        if (dataInicio && dataFim) {
+            where.data = { gte: new Date(dataInicio), lte: new Date(dataFim) };
+        }
+
+        // Buscar todos os itens validados
+        const itens = await prisma.cronogramaItem.findMany({
+            where,
+            include: {
+                professor: { select: { id: true, nome: true } },
+                turma: { select: { id: true, nome: true } },
+                tarefaExtra: { select: { tipo: true, titulo: true } }
+            },
+            orderBy: [{ data: 'asc' }]
+        });
+
+        // Agrupar por professor
+        const porProfessor = {};
+        itens.forEach(item => {
+            if (!porProfessor[item.professorId]) {
+                porProfessor[item.professorId] = {
+                    professor: item.professor,
+                    totalHoras: 0,
+                    totalValor: 0,
+                    qtdAulas: 0,
+                    qtdTarefas: 0,
+                    itens: []
+                };
+            }
+            porProfessor[item.professorId].totalHoras += (item.duracaoMinutos || 0) / 60;
+            porProfessor[item.professorId].totalValor += item.valorCalculado || 0;
+            if (item.turmaId) porProfessor[item.professorId].qtdAulas++;
+            if (item.tarefaExtraId) porProfessor[item.professorId].qtdTarefas++;
+            porProfessor[item.professorId].itens.push(item);
+        });
+
+        // Totais gerais
+        const totais = {
+            totalHoras: itens.reduce((acc, i) => acc + ((i.duracaoMinutos || 0) / 60), 0),
+            totalValor: itens.reduce((acc, i) => acc + (i.valorCalculado || 0), 0),
+            qtdItens: itens.length,
+            qtdProfessores: Object.keys(porProfessor).length
+        };
+
+        res.json({ totais, porProfessor: Object.values(porProfessor), itens });
+    } catch (error) {
+        console.error('Erro ao gerar relatório:', error);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+// Parâmetros do sistema (listar e atualizar)
+app.get('/api/parametros', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        const parametros = await prisma.parametro.findMany();
+        res.json(parametros);
+    } catch (error) {
+        console.error('Erro ao buscar parâmetros:', error);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+app.put('/api/parametros/:chave', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        const { valor } = req.body;
+        const parametro = await prisma.parametro.upsert({
+            where: { chave: req.params.chave },
+            update: { valor },
+            create: { chave: req.params.chave, valor, descricao: req.body.descricao }
+        });
+        res.json(parametro);
+    } catch (error) {
+        console.error('Erro ao atualizar parâmetro:', error);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+// Recalcular valores de todos os itens realizados (Admin only)
+app.post('/api/cronograma/recalcular', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        const valorHora = parseFloat(process.env.VALOR_HORA_AULA) || 27.00;
+
+        // Buscar todos os itens realizados sem valor calculado
+        const itens = await prisma.cronogramaItem.findMany({
+            where: {
+                realizada: true,
+                OR: [
+                    { duracaoMinutos: null },
+                    { valorCalculado: null }
+                ]
+            }
+        });
+
+        let atualizados = 0;
+        for (const item of itens) {
+            // Calcular duração
+            const [horaIni, minIni] = item.horaInicio.split(':').map(Number);
+            const [horaFim, minFim] = item.horaFim.split(':').map(Number);
+            const duracaoMinutos = (horaFim * 60 + minFim) - (horaIni * 60 + minIni);
+            const valorCalculado = (duracaoMinutos / 60) * valorHora;
+
+            await prisma.cronogramaItem.update({
+                where: { id: item.id },
+                data: { duracaoMinutos, valorCalculado }
+            });
+            atualizados++;
+        }
+
+        res.json({
+            message: `${atualizados} itens recalculados com sucesso`,
+            valorHora,
+            itensAtualizados: atualizados
+        });
+    } catch (error) {
+        console.error('Erro ao recalcular valores:', error);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+// ==========================================
+// ROTAS DE TAREFAS EXTRAS
+// ==========================================
+
+
+app.get('/api/tarefas-extras', authMiddleware, async (req, res) => {
+    try {
+        const where = req.user.role === 'ADMIN' ? {} : { professorId: req.user.id };
+
+        const tarefas = await prisma.tarefaExtra.findMany({
+            where,
+            include: { professor: { select: { id: true, nome: true } } },
             orderBy: { data: 'desc' }
         });
 
         res.json(tarefas);
     } catch (error) {
-        console.error('Erro ao buscar tarefas:', error);
+        console.error('Erro ao buscar tarefas extras:', error);
         res.status(500).json({ error: 'Erro interno do servidor' });
     }
 });
 
-app.post('/api/tarefas', authMiddleware, async (req, res) => {
+app.post('/api/tarefas-extras', authMiddleware, async (req, res) => {
     try {
         const { tipo, titulo, descricao, data, horaInicio, horaFim } = req.body;
 
-        const tarefa = await prisma.tarefa.create({
+        const tarefa = await prisma.tarefaExtra.create({
             data: {
                 professorId: req.user.id,
-                tipo,
-                titulo,
-                descricao,
+                tipo, titulo, descricao,
                 data: new Date(data),
-                horaInicio,
-                horaFim
+                horaInicio, horaFim
+            }
+        });
+
+        // Criar item no cronograma
+        await prisma.cronogramaItem.create({
+            data: {
+                professorId: req.user.id,
+                tarefaExtraId: tarefa.id,
+                data: new Date(data),
+                horaInicio, horaFim,
+                descricao: `${tipo}: ${titulo}`
             }
         });
 
         res.status(201).json(tarefa);
     } catch (error) {
-        console.error('Erro ao criar tarefa:', error);
+        console.error('Erro ao criar tarefa extra:', error);
         res.status(500).json({ error: 'Erro interno do servidor' });
     }
 });
 
-app.put('/api/tarefas/:id/concluir', authMiddleware, async (req, res) => {
+app.put('/api/tarefas-extras/:id/concluir', authMiddleware, async (req, res) => {
     try {
-        const tarefa = await prisma.tarefa.findUnique({
-            where: { id: req.params.id }
-        });
-
-        if (!tarefa) {
-            return res.status(404).json({ error: 'Tarefa não encontrada' });
-        }
+        const tarefa = await prisma.tarefaExtra.findUnique({ where: { id: req.params.id } });
+        if (!tarefa) return res.status(404).json({ error: 'Tarefa não encontrada' });
 
         if (req.user.role !== 'ADMIN' && tarefa.professorId !== req.user.id) {
             return res.status(403).json({ error: 'Acesso negado' });
         }
 
-        // Calcular duração e registrar hora
         const [horaIni, minIni] = tarefa.horaInicio.split(':').map(Number);
         const [horaFim, minFim] = tarefa.horaFim.split(':').map(Number);
         const duracaoMinutos = (horaFim * 60 + minFim) - (horaIni * 60 + minIni);
@@ -618,7 +1108,7 @@ app.put('/api/tarefas/:id/concluir', authMiddleware, async (req, res) => {
             }
         });
 
-        const updated = await prisma.tarefa.update({
+        const updated = await prisma.tarefaExtra.update({
             where: { id: req.params.id },
             data: { status: 'CONCLUIDA' }
         });
@@ -631,123 +1121,27 @@ app.put('/api/tarefas/:id/concluir', authMiddleware, async (req, res) => {
 });
 
 // ==========================================
-// ROTAS DE HORAS E PAGAMENTOS
-// ==========================================
-
-app.get('/api/horas', authMiddleware, async (req, res) => {
-    try {
-        const { mes, ano, professorId } = req.query;
-
-        const where = {};
-
-        // Professor só vê próprias horas
-        if (req.user.role !== 'ADMIN') {
-            where.professorId = req.user.id;
-        } else if (professorId) {
-            where.professorId = professorId;
-        }
-
-        if (mes && ano) {
-            const dataInicio = new Date(ano, mes - 1, 1);
-            const dataFim = new Date(ano, mes, 0);
-            where.data = {
-                gte: dataInicio,
-                lte: dataFim
-            };
-        }
-
-        const registros = await prisma.registroHora.findMany({
-            where,
-            include: {
-                professor: { select: { id: true, nome: true } },
-                turma: {
-                    select: {
-                        id: true,
-                        nome: true,
-                        curso: { select: { nome: true } }
-                    }
-                }
-            },
-            orderBy: { data: 'desc' }
-        });
-
-        // Calcular totais
-        const totalMinutos = registros.reduce((acc, r) => acc + r.duracaoMinutos, 0);
-        const totalValor = registros.reduce((acc, r) => acc + r.valorTotal, 0);
-
-        res.json({
-            registros,
-            resumo: {
-                totalHoras: (totalMinutos / 60).toFixed(2),
-                totalMinutos,
-                totalValor: totalValor.toFixed(2)
-            }
-        });
-    } catch (error) {
-        console.error('Erro ao buscar horas:', error);
-        res.status(500).json({ error: 'Erro interno do servidor' });
-    }
-});
-
-// ==========================================
-// ROTAS DE PARÂMETROS
-// ==========================================
-
-app.get('/api/parametros', authMiddleware, async (req, res) => {
-    try {
-        const parametros = await prisma.parametro.findMany();
-        const params = {};
-        parametros.forEach(p => {
-            params[p.chave] = p.valor;
-        });
-        res.json(params);
-    } catch (error) {
-        console.error('Erro ao buscar parâmetros:', error);
-        res.status(500).json({ error: 'Erro interno do servidor' });
-    }
-});
-
-app.put('/api/parametros/:chave', authMiddleware, adminMiddleware, async (req, res) => {
-    try {
-        const { valor, descricao } = req.body;
-
-        const parametro = await prisma.parametro.upsert({
-            where: { chave: req.params.chave },
-            update: { valor, descricao },
-            create: { chave: req.params.chave, valor, descricao }
-        });
-
-        res.json(parametro);
-    } catch (error) {
-        console.error('Erro ao atualizar parâmetro:', error);
-        res.status(500).json({ error: 'Erro interno do servidor' });
-    }
-});
-
-// ==========================================
 // DASHBOARD STATS
 // ==========================================
 
 app.get('/api/dashboard/stats', authMiddleware, async (req, res) => {
     try {
         const where = req.user.role === 'ADMIN' ? {} : { professorId: req.user.id };
-        const whereHoras = req.user.role === 'ADMIN' ? {} : { professorId: req.user.id };
 
-        // Datas do mês atual
         const agora = new Date();
         const inicioMes = new Date(agora.getFullYear(), agora.getMonth(), 1);
         const fimMes = new Date(agora.getFullYear(), agora.getMonth() + 1, 0);
 
-        whereHoras.data = { gte: inicioMes, lte: fimMes };
-
-        const [totalTurmas, turmasAtivas, totalProfessores, horasMes] = await Promise.all([
+        const [totalTurmas, turmasAtivas, totalProfessores, totalCursos, horasMes] = await Promise.all([
             prisma.turma.count({ where }),
             prisma.turma.count({ where: { ...where, status: 'ATIVA' } }),
-            req.user.role === 'ADMIN'
-                ? prisma.user.count({ where: { role: 'PROFESSOR', ativo: true } })
-                : 1,
+            req.user.role === 'ADMIN' ? prisma.user.count({ where: { role: 'PROFESSOR', ativo: true } }) : 1,
+            prisma.curso.count({ where: { ativo: true } }),
             prisma.registroHora.aggregate({
-                where: whereHoras,
+                where: {
+                    ...(req.user.role === 'ADMIN' ? {} : { professorId: req.user.id }),
+                    data: { gte: inicioMes, lte: fimMes }
+                },
                 _sum: { duracaoMinutos: true, valorTotal: true }
             })
         ]);
@@ -756,6 +1150,7 @@ app.get('/api/dashboard/stats', authMiddleware, async (req, res) => {
             totalTurmas,
             turmasAtivas,
             totalProfessores,
+            totalCursos,
             horasMes: ((horasMes._sum.duracaoMinutos || 0) / 60).toFixed(1),
             valorMes: (horasMes._sum.valorTotal || 0).toFixed(2)
         });
@@ -765,7 +1160,6 @@ app.get('/api/dashboard/stats', authMiddleware, async (req, res) => {
     }
 });
 
-// Aulas de hoje e amanhã
 app.get('/api/dashboard/aulas-hoje', authMiddleware, async (req, res) => {
     try {
         const hoje = new Date();
@@ -785,15 +1179,46 @@ app.get('/api/dashboard/aulas-hoje', authMiddleware, async (req, res) => {
                 professor: { select: { id: true, nome: true } },
                 curso: { select: { nome: true, cor: true } }
             },
-            orderBy: { horario: 'asc' }
+            orderBy: { horarioInicio: 'asc' }
         });
 
-        const aulasHoje = turmas.filter(t => t.diasSemana.includes(diaHoje));
-        const aulasAmanha = turmas.filter(t => t.diasSemana.includes(diaAmanha));
-
-        res.json({ aulasHoje, aulasAmanha });
+        res.json({
+            aulasHoje: turmas.filter(t => t.diasSemana.includes(diaHoje)),
+            aulasAmanha: turmas.filter(t => t.diasSemana.includes(diaAmanha))
+        });
     } catch (error) {
         console.error('Erro ao buscar aulas:', error);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+// ==========================================
+// PARÂMETROS
+// ==========================================
+
+app.get('/api/parametros', authMiddleware, async (req, res) => {
+    try {
+        const parametros = await prisma.parametro.findMany();
+        const params = {};
+        parametros.forEach(p => { params[p.chave] = p.valor; });
+        res.json(params);
+    } catch (error) {
+        console.error('Erro ao buscar parâmetros:', error);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+app.put('/api/parametros/:chave', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        const { valor, descricao } = req.body;
+        const parametro = await prisma.parametro.upsert({
+            where: { chave: req.params.chave },
+            update: { valor, descricao },
+            create: { chave: req.params.chave, valor, descricao }
+        });
+        res.json(parametro);
+    } catch (error) {
+        console.error('Erro ao atualizar parâmetro:', error);
         res.status(500).json({ error: 'Erro interno do servidor' });
     }
 });
@@ -805,14 +1230,13 @@ app.get('/api/dashboard/aulas-hoje', authMiddleware, async (req, res) => {
 app.listen(PORT, () => {
     console.log(`
 ╔════════════════════════════════════════════╗
-║   PrismaTech - API de Gestão de Aulas      ║
+║   PrismaTech - API de Gestão v2.0          ║
 ║   Servidor rodando na porta ${PORT}            ║
 ║   http://localhost:${PORT}                     ║
 ╚════════════════════════════════════════════╝
     `);
 });
 
-// Fechar conexão Prisma ao encerrar
 process.on('SIGINT', async () => {
     await prisma.$disconnect();
     process.exit();

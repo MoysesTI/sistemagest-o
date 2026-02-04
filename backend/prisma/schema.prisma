@@ -1,6 +1,6 @@
 // ==========================================
 // PRISMA SCHEMA - SISTEMA DE GESTÃO DE AULAS
-// PrismaTech Code Academy
+// PrismaTech Code Academy - v2.0
 // ==========================================
 
 generator client {
@@ -17,8 +17,8 @@ datasource db {
 // ==========================================
 
 enum UserRole {
-  ADMIN
-  PROFESSOR
+  ADMIN // Pedagógico - acesso total
+  PROFESSOR // Acesso restrito aos próprios dados
 }
 
 enum DiaSemana {
@@ -39,12 +39,12 @@ enum StatusTurma {
 }
 
 enum TipoTarefa {
-  PLANEJAMENTO
-  ORGANIZACAO
-  PRODUCAO_MATERIAL
-  PROJETO
-  GRAVACAO
-  AJUSTE_PEDAGOGICO
+  PLANEJAMENTO // Planejamento de aula
+  ORGANIZACAO // Organização de conteúdo
+  PRODUCAO_MATERIAL // Produção de material
+  EDICAO_VIDEO // Edição de vídeo
+  PROJETO // Projeto especial
+  REUNIAO // Reunião pedagógica
   OUTRO
 }
 
@@ -56,30 +56,31 @@ enum StatusTarefa {
 }
 
 // ==========================================
-// USUÁRIOS (Admin e Professor)
+// USUÁRIOS (Admin Pedagógico e Professor)
 // ==========================================
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  senha         String
-  nome          String
-  telefone      String?
-  role          UserRole  @default(PROFESSOR)
-  ativo         Boolean   @default(true)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id        String   @id @default(cuid())
+  email     String   @unique
+  senha     String
+  nome      String
+  telefone  String?
+  role      UserRole @default(PROFESSOR)
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Dados MEI (para professores)
-  cnpj          String?
-  razaoSocial   String?
-  certificadoMEI Boolean  @default(false)
+  cnpj           String?
+  razaoSocial    String?
+  certificadoMEI Boolean @default(false)
 
   // Relacionamentos
-  turmas        Turma[]
-  cronogramas   Cronograma[]
-  tarefas       Tarefa[]
-  registrosHora RegistroHora[]
+  turmas            Turma[]
+  cronogramas       CronogramaItem[]
+  tarefasExtras     TarefaExtra[]
+  registrosHora     RegistroHora[]
+  modulosLecionados ProfessorModulo[]
 
   @@map("users")
 }
@@ -89,59 +90,88 @@ model User {
 // ==========================================
 
 model Curso {
-  id          String    @id @default(cuid())
-  codigo      String    @unique
-  nome        String
-  descricao   String?
-  cor         String    @default("#2980b9")
-  nivel       String    @default("L1")
-  ativo       Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id        String   @id @default(cuid())
+  codigo    String   @unique
+  nome      String
+  descricao String?
+  cor       String   @default("#2980b9")
+  ativo     Boolean  @default(true)
+  ordem     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Arquivo de referência do curso geral
+  arquivoReferencia String?
 
   // Relacionamentos
-  modulos     Modulo[]
-  turmas      Turma[]
+  modulos Modulo[]
+  turmas  Turma[]
 
   @@map("cursos")
 }
 
 model Modulo {
-  id          String    @id @default(cuid())
-  codigo      String
-  nome        String
-  descricao   String?
-  ordem       Int       @default(1)
-  ativo       Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id        String   @id @default(cuid())
+  codigo    String
+  nome      String
+  descricao String?
+  ordem     Int      @default(1)
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Arquivo de referência do módulo
+  arquivoReferencia String?
 
   // Relacionamentos
-  cursoId     String
-  curso       Curso     @relation(fields: [cursoId], references: [id], onDelete: Cascade)
-  aulas       Aula[]
-  turmas      Turma[]
+  cursoId      String
+  curso        Curso             @relation(fields: [cursoId], references: [id], onDelete: Cascade)
+  aulas        Aula[]
+  professores  ProfessorModulo[]
+  turmaModulos TurmaModulo[]
 
   @@unique([cursoId, codigo])
   @@map("modulos")
 }
 
 model Aula {
-  id          String    @id @default(cuid())
-  numero      Int
-  titulo      String
-  topicos     String[]
-  duracao     String    @default("2h30min")
-  ativo       Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id        String   @id @default(cuid())
+  numero    Int
+  titulo    String
+  descricao String?
+  duracao   String   @default("2h30min")
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Arquivo/Link de referência da aula
+  arquivoReferencia String?
+
+  // Imagem do slide (preparado para futuro)
+  imagemSlide String?
+
+  // Tópicos da aula (array de strings)
+  topicos String[]
 
   // Relacionamentos
-  moduloId    String
-  modulo      Modulo    @relation(fields: [moduloId], references: [id], onDelete: Cascade)
+  moduloId String
+  modulo   Modulo @relation(fields: [moduloId], references: [id], onDelete: Cascade)
 
   @@unique([moduloId, numero])
   @@map("aulas")
+}
+
+// Relacionamento Professor <-> Módulos que leciona
+model ProfessorModulo {
+  id          String   @id @default(cuid())
+  professorId String
+  professor   User     @relation(fields: [professorId], references: [id], onDelete: Cascade)
+  moduloId    String
+  modulo      Modulo   @relation(fields: [moduloId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@unique([professorId, moduloId])
+  @@map("professor_modulos")
 }
 
 // ==========================================
@@ -155,66 +185,99 @@ model Turma {
   local         String
   qtdAlunos     Int         @default(0)
   diasSemana    DiaSemana[]
-  horario       String
+  horarioInicio String
+  horarioFim    String
+  dataInicio    DateTime // Data de início do curso
+  dataFim       DateTime // Data de término do curso
   aulaAtual     Int         @default(0)
   status        StatusTurma @default(PENDENTE)
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
   // Relacionamentos
-  professorId   String
-  professor     User        @relation(fields: [professorId], references: [id])
-  cursoId       String
-  curso         Curso       @relation(fields: [cursoId], references: [id])
-  moduloId      String?
-  modulo        Modulo?     @relation(fields: [moduloId], references: [id])
-  
-  cronogramas   Cronograma[]
+  professorId String
+  professor   User   @relation(fields: [professorId], references: [id])
+  cursoId     String
+  curso       Curso  @relation(fields: [cursoId], references: [id])
+
+  cronogramas   CronogramaItem[]
   registrosHora RegistroHora[]
+  turmaModulos  TurmaModulo[]
 
   @@map("turmas")
+}
+
+// Módulos ativos na turma (progresso)
+model TurmaModulo {
+  id        String   @id @default(cuid())
+  turmaId   String
+  turma     Turma    @relation(fields: [turmaId], references: [id], onDelete: Cascade)
+  moduloId  String
+  modulo    Modulo   @relation(fields: [moduloId], references: [id])
+  aulaAtual Int      @default(0)
+  concluido Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([turmaId, moduloId])
+  @@map("turma_modulos")
 }
 
 // ==========================================
 // CRONOGRAMA E TAREFAS
 // ==========================================
 
-model Cronograma {
-  id          String    @id @default(cuid())
-  data        DateTime
-  horaInicio  String
-  horaFim     String
-  descricao   String?
-  realizada   Boolean   @default(false)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+model CronogramaItem {
+  id             String    @id @default(cuid())
+  data           DateTime
+  horaInicio     String
+  horaFim        String
+  descricao      String?
+  realizada      Boolean   @default(false) // CHECK do professor
+  validadoAdmin  Boolean   @default(false) // CHECK do admin
+  validadoPorId  String? // ID do admin que validou
+  dataValidacao  DateTime? // Data/hora da validação
+  duracaoMinutos Int? // Duração calculada
+  valorCalculado Float? // Valor em R$
+  bonusAplicado  Float? // Percentual de bônus (ex: 33)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   // Relacionamentos
-  professorId String
-  professor   User      @relation(fields: [professorId], references: [id])
-  turmaId     String?
-  turma       Turma?    @relation(fields: [turmaId], references: [id])
+  professorId   String
+  professor     User         @relation(fields: [professorId], references: [id])
+  turmaId       String?
+  turma         Turma?       @relation(fields: [turmaId], references: [id])
+  tarefaExtraId String?
+  tarefaExtra   TarefaExtra? @relation(fields: [tarefaExtraId], references: [id])
 
-  @@map("cronogramas")
+  @@map("cronograma_items")
 }
 
-model Tarefa {
-  id          String        @id @default(cuid())
-  tipo        TipoTarefa
-  titulo      String
-  descricao   String?
-  data        DateTime
-  horaInicio  String
-  horaFim     String
-  status      StatusTarefa  @default(PENDENTE)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+model TarefaExtra {
+  id             String       @id @default(cuid())
+  tipo           TipoTarefa
+  titulo         String
+  descricao      String?
+  data           DateTime
+  horaInicio     String
+  horaFim        String
+  status         StatusTarefa @default(PENDENTE)
+  validadoAdmin  Boolean      @default(false) // CHECK do admin
+  validadoPorId  String? // ID do admin que validou
+  dataValidacao  DateTime? // Data/hora da validação
+  duracaoMinutos Int? // Duração calculada
+  valorCalculado Float? // Valor em R$
+  bonusAplicado  Float? // Percentual de bônus
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
   // Relacionamentos
   professorId String
-  professor   User          @relation(fields: [professorId], references: [id])
+  professor   User             @relation(fields: [professorId], references: [id])
+  cronogramas CronogramaItem[]
 
-  @@map("tarefas")
+  @@map("tarefas_extras")
 }
 
 // ==========================================
@@ -222,23 +285,23 @@ model Tarefa {
 // ==========================================
 
 model RegistroHora {
-  id            String    @id @default(cuid())
-  data          DateTime
-  horaInicio    String
-  horaFim       String
+  id             String   @id @default(cuid())
+  data           DateTime
+  horaInicio     String
+  horaFim        String
   duracaoMinutos Int
-  tipo          String    // "AULA" ou tipo de tarefa
-  descricao     String?
-  valorHora     Float
-  valorTotal    Float
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  tipo           String // "AULA" ou tipo de tarefa
+  descricao      String?
+  valorHora      Float
+  valorTotal     Float
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   // Relacionamentos
-  professorId   String
-  professor     User      @relation(fields: [professorId], references: [id])
-  turmaId       String?
-  turma         Turma?    @relation(fields: [turmaId], references: [id])
+  professorId String
+  professor   User    @relation(fields: [professorId], references: [id])
+  turmaId     String?
+  turma       Turma?  @relation(fields: [turmaId], references: [id])
 
   @@map("registros_hora")
 }
@@ -248,12 +311,12 @@ model RegistroHora {
 // ==========================================
 
 model Parametro {
-  id          String    @id @default(cuid())
-  chave       String    @unique
-  valor       String
-  descricao   String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id        String   @id @default(cuid())
+  chave     String   @unique
+  valor     String
+  descricao String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("parametros")
 }

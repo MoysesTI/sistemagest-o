@@ -30,6 +30,10 @@
                         <i class="bi bi-collection nav-icon"></i>
                         <span>Turmas</span>
                     </div>
+                    <div class="nav-item" data-section="cursos" onclick="showSection('cursos')">
+                        <i class="bi bi-book nav-icon"></i>
+                        <span>Cursos</span>
+                    </div>
                     <div class="nav-item" data-section="professores" onclick="showSection('professores')">
                         <i class="bi bi-people nav-icon"></i>
                         <span>Professores</span>
@@ -38,9 +42,9 @@
                         <i class="bi bi-calendar3 nav-icon"></i>
                         <span>Cronograma</span>
                     </div>
-                    <div class="nav-item" data-section="horas" onclick="showSection('horas')">
-                        <i class="bi bi-clock-history nav-icon"></i>
-                        <span>Horas & Pagamentos</span>
+                    <div class="nav-item nav-item-admin" data-section="relatorios" onclick="showSection('relatorios')">
+                        <i class="bi bi-bar-chart-line nav-icon"></i>
+                        <span>Relatórios</span>
                     </div>
                     <div class="nav-item" data-section="dados" onclick="showSection('dados')">
                         <i class="bi bi-gear nav-icon"></i>
@@ -49,15 +53,22 @@
                 </div>
             </nav>
 
+
             <div class="sidebar-footer">
-                <div class="user-profile" onclick="showSection('dados')">
-                    <div class="user-avatar">PT</div>
+                <div class="user-profile">
+                    <div class="user-avatar" id="user-avatar">PT</div>
+
                     <div class="user-info-sidebar">
-                        <div class="user-name-sidebar">PrismaTech Admin</div>
-                        <div class="user-email-sidebar">admin@prismatech.com</div>
+
+                        <div class="user-name-sidebar" id="user-name">Carregando...</div>
+                        <div class="user-email-sidebar" id="user-email">...</div>
+
                     </div>
-                    <i class="bi bi-chevron-expand" style="color: var(--text-muted);"></i>
+                    <button class="btn-logout" onclick="API.logout()" title="Sair">
+                        <i class="bi bi-box-arrow-right"></i>
+                    </button>
                 </div>
+
             </div>
         </aside>
 
@@ -78,15 +89,14 @@
                 <div class="header-center">
                     <div class="search-box">
                         <i class="bi bi-search"></i>
-                        <input type="text" placeholder="Buscar...">
+                        <input type="text" placeholder="Buscar..." id="global-search">
                     </div>
                 </div>
 
                 <div class="header-right">
-                    <button class="header-btn"
-                        onclick="showSection('turmas'); setTimeout(() => document.getElementById('btn-add-turma')?.click(), 100);">
+                    <button class="header-btn" id="btn-header-action">
                         <i class="bi bi-plus-lg"></i>
-                        Nova Turma
+                        <span id="btn-header-text">Nova Turma</span>
                     </button>
                     <button class="header-icon-btn">
                         <i class="bi bi-bell"></i>
@@ -95,154 +105,106 @@
             </header>
 
             <div class="container">
-                <!-- DASHBOARD -->
+                <!-- ==================== DASHBOARD ==================== -->
                 <section id="section-dashboard" class="content-section">
                     <div class="page-header">
                         <div>
-                            <h2 class="page-header-title">Overview</h2>
-                            <p class="page-header-subtitle">Monitore todas as atividades da academia</p>
+                            <h2 class="page-header-title">Dashboard</h2>
+                            <p class="page-header-subtitle">Visão geral do sistema</p>
                         </div>
                     </div>
 
-                    <!-- Stats Cards -->
+                    <!-- Stats Grid -->
                     <div class="stats-grid">
                         <div class="stat-card">
-                            <div class="stat-card-header">
-                                <span class="stat-card-title">Total de Turmas</span>
-                                <i class="bi bi-three-dots stat-card-menu"></i>
+                            <div class="stat-icon" style="background: rgba(52, 152, 219, 0.15); color: #3498db;">
+                                <i class="bi bi-collection"></i>
                             </div>
-                            <div class="stat-value" id="stat-total-turmas">0</div>
-                            <div class="stat-trend positive">
-                                <i class="bi bi-arrow-up-short"></i>
-                                <span>+12%</span>
-                                <span class="stat-trend-text">desde o último mês</span>
+                            <div class="stat-info">
+                                <div class="stat-value" id="stat-total-turmas">0</div>
+                                <div class="stat-label">Total Turmas</div>
                             </div>
                         </div>
-
                         <div class="stat-card">
-                            <div class="stat-card-header">
-                                <span class="stat-card-title">Turmas Ativas</span>
-                                <i class="bi bi-three-dots stat-card-menu"></i>
+                            <div class="stat-icon" style="background: rgba(46, 204, 113, 0.15); color: #2ecc71;">
+                                <i class="bi bi-play-circle"></i>
                             </div>
-                            <div class="stat-value" id="stat-turmas-ativas">0</div>
-                            <div class="stat-trend positive">
-                                <i class="bi bi-arrow-up-short"></i>
-                                <span>+8%</span>
-                                <span class="stat-trend-text">desde o último mês</span>
+                            <div class="stat-info">
+                                <div class="stat-value" id="stat-turmas-ativas">0</div>
+                                <div class="stat-label">Turmas Ativas</div>
                             </div>
                         </div>
-
-                        <div class="stat-card">
-                            <div class="stat-card-header">
-                                <span class="stat-card-title">Professores</span>
-                                <i class="bi bi-three-dots stat-card-menu"></i>
+                        <div class="stat-card stat-card-admin">
+                            <div class="stat-icon" style="background: rgba(155, 89, 182, 0.15); color: #9b59b6;">
+                                <i class="bi bi-people"></i>
                             </div>
-                            <div class="stat-value" id="stat-professores">0</div>
-                            <div class="stat-trend positive">
-                                <i class="bi bi-arrow-up-short"></i>
-                                <span>+2</span>
-                                <span class="stat-trend-text">novos este mês</span>
+                            <div class="stat-info">
+                                <div class="stat-value" id="stat-professores">0</div>
+                                <div class="stat-label">Professores</div>
                             </div>
                         </div>
-
                         <div class="stat-card">
-                            <div class="stat-card-header">
-                                <span class="stat-card-title">Horas do Mês</span>
-                                <i class="bi bi-three-dots stat-card-menu"></i>
+                            <div class="stat-icon" style="background: rgba(241, 196, 15, 0.15); color: #f1c40f;">
+                                <i class="bi bi-book"></i>
                             </div>
-                            <div class="stat-value" id="stat-horas-mes">0h</div>
-                            <div class="stat-trend positive">
-                                <i class="bi bi-arrow-up-short"></i>
-                                <span>+15%</span>
-                                <span class="stat-trend-text">desde o último mês</span>
+                            <div class="stat-info">
+                                <div class="stat-value" id="stat-cursos">0</div>
+                                <div class="stat-label">Cursos</div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Two Column Layout -->
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
-                        <!-- Performance Card -->
+                    <div class="dashboard-grid">
+                        <!-- Próximas Aulas -->
                         <div class="card">
                             <div class="card-header">
-                                <h3 class="card-title">Desempenho Geral</h3>
-                                <i class="bi bi-info-circle" style="color: var(--text-muted);"></i>
+                                <h3 class="card-title"><i class="bi bi-calendar-event"></i> Aulas de Hoje</h3>
+                                <button class="btn btn-sm btn-secondary" onclick="showSection('cronograma')">
+                                    <i class="bi bi-calendar3"></i> Ver Cronograma
+                                </button>
                             </div>
-                            <div class="card-body">
-                                <div class="performance-circle" style="margin: 0 auto;">
-                                    <svg viewBox="0 0 160 160" style="transform: rotate(-90deg);">
-                                        <circle cx="80" cy="80" r="70" fill="none" stroke="#f3f4f6" stroke-width="12" />
-                                        <circle cx="80" cy="80" r="70" fill="none" stroke="#22c55e" stroke-width="12"
-                                            stroke-dasharray="439.8" stroke-dashoffset="88" stroke-linecap="round" />
-                                    </svg>
-                                    <div class="performance-value">
-                                        <span class="performance-number" id="performance-score">79</span>
-                                        <span class="performance-unit">de 100 pontos</span>
-                                    </div>
-                                </div>
-                                <div class="performance-message" style="margin-top: 1rem;">
-                                    <p class="performance-title">Sua equipe está ótima! 🚀</p>
-                                    <p class="performance-description">O desempenho está acima da média, mantendo
-                                        consistência nos resultados.</p>
-                                </div>
+                            <div class="card-body" id="proximas-aulas">
+                                <p class="loading-text">Carregando...</p>
                             </div>
                         </div>
 
-                        <!-- Top Professores -->
+                        <!-- Professores / Meus Dados -->
                         <div class="card">
                             <div class="card-header">
-                                <h3 class="card-title">Top Professores</h3>
-                                <i class="bi bi-three-dots" style="color: var(--text-muted);"></i>
+                                <h3 class="card-title" id="title-professores-card">
+                                    <i class="bi bi-trophy"></i> Top Professores
+                                </h3>
                             </div>
-                            <div class="card-body">
-                                <div class="employee-list" id="top-professores">
-                                    <!-- Populated via JS -->
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Próximas Aulas -->
-                    <div class="card" style="margin-top: 1.5rem;">
-                        <div class="card-header">
-                            <h3 class="card-title">Aulas de Hoje</h3>
-                            <button class="btn btn-sm btn-secondary" onclick="showSection('cronograma')">
-                                <i class="bi bi-calendar3"></i>
-                                Ver Cronograma
-                            </button>
-                        </div>
-                        <div class="card-body">
-                            <div class="upcoming-classes" id="proximas-aulas">
-                                <p style="color: var(--text-muted); text-align: center; padding: 2rem;">Carregando...
-                                </p>
+                            <div class="card-body" id="top-professores">
+                                <p class="loading-text">Carregando...</p>
                             </div>
                         </div>
                     </div>
                 </section>
 
-                <!-- TURMAS -->
+                <!-- ==================== TURMAS ==================== -->
                 <section id="section-turmas" class="content-section" style="display: none;">
                     <div class="page-header">
                         <div>
                             <h2 class="page-header-title">Gestão de Turmas</h2>
                             <p class="page-header-subtitle">Gerencie suas turmas e acompanhe o progresso</p>
                         </div>
-                        <button id="btn-add-turma" class="btn btn-accent">
-                            <i class="bi bi-plus-lg"></i>
-                            Nova Turma
+                        <button id="btn-add-turma" class="btn btn-accent" onclick="showNovaTurmaModal()">
+                            <i class="bi bi-plus-lg"></i> Nova Turma
                         </button>
                     </div>
 
                     <div class="controls">
                         <div class="filter-options">
                             <button class="filter-btn active" data-filter="all">Todas</button>
-                            <button class="filter-btn" data-filter="segunda">Segunda</button>
-                            <button class="filter-btn" data-filter="terca">Terça</button>
-                            <button class="filter-btn" data-filter="quarta">Quarta</button>
-                            <button class="filter-btn" data-filter="quinta">Quinta</button>
-                            <button class="filter-btn" data-filter="sexta">Sexta</button>
-                            <button class="filter-btn" data-filter="sabado">Sábado</button>
+                            <button class="filter-btn" data-filter="SEGUNDA">Segunda</button>
+                            <button class="filter-btn" data-filter="TERCA">Terça</button>
+                            <button class="filter-btn" data-filter="QUARTA">Quarta</button>
+                            <button class="filter-btn" data-filter="QUINTA">Quinta</button>
+                            <button class="filter-btn" data-filter="SEXTA">Sexta</button>
+                            <button class="filter-btn" data-filter="SABADO">Sábado</button>
                         </div>
-                        <input type="text" class="search-input" placeholder="Buscar turma...">
+                        <input type="text" class="search-input" placeholder="Buscar turma..." id="search-turmas">
                     </div>
 
                     <div class="turma-grid" id="turma-container">
@@ -250,269 +212,313 @@
                     </div>
                 </section>
 
-                <!-- PROFESSORES -->
+                <!-- ==================== CURSOS ==================== -->
+                <section id="section-cursos" class="content-section" style="display: none;">
+                    <div class="page-header">
+                        <div>
+                            <h2 class="page-header-title">Gestão de Cursos</h2>
+                            <p class="page-header-subtitle">Organize cursos, módulos e aulas</p>
+                        </div>
+                        <button class="btn btn-accent admin-only" onclick="showNovoCursoModal()">
+                            <i class="bi bi-plus-lg"></i> Novo Curso
+                        </button>
+                    </div>
+
+                    <div class="cursos-container" id="cursos-container">
+                        <!-- Cursos via JS -->
+                    </div>
+                </section>
+
+                <!-- ==================== PROFESSORES ==================== -->
                 <section id="section-professores" class="content-section" style="display: none;">
                     <div class="page-header">
                         <div>
                             <h2 class="page-header-title">Professores</h2>
                             <p class="page-header-subtitle">Cadastro e gestão de professores MEI</p>
                         </div>
-                        <button class="btn btn-accent" onclick="abrirModalProfessor()">
-                            <i class="bi bi-plus-lg"></i>
-                            Novo Professor
+                        <button class="btn btn-accent admin-only" onclick="showNovoProfessorModal()">
+                            <i class="bi bi-plus-lg"></i> Novo Professor
                         </button>
                     </div>
 
-                    <div class="turma-grid" id="professores-container">
+                    <div class="professores-grid" id="professores-container">
                         <!-- Professores via JS -->
                     </div>
                 </section>
 
-                <!-- CRONOGRAMA -->
+                <!-- ==================== CRONOGRAMA ==================== -->
                 <section id="section-cronograma" class="content-section" style="display: none;">
                     <div class="page-header">
                         <div>
-                            <h2 class="page-header-title">Cronograma Semanal</h2>
-                            <p class="page-header-subtitle">Visualização de aulas por semana</p>
+                            <h2 class="page-header-title">Cronograma</h2>
+                            <p class="page-header-subtitle">Visualização semanal de aulas e tarefas</p>
                         </div>
-                        <div style="display: flex; gap: 0.5rem;">
-                            <button class="btn btn-secondary" onclick="mudarSemana(-1)">
-                                <i class="bi bi-chevron-left"></i>
+                        <div class="page-header-actions">
+                            <button class="btn btn-secondary" onclick="importarCronograma()">
+                                <i class="bi bi-cloud-download"></i> Importar Turmas
                             </button>
-                            <button class="btn btn-accent" onclick="mudarSemana(0)">Hoje</button>
-                            <button class="btn btn-secondary" onclick="mudarSemana(1)">
-                                <i class="bi bi-chevron-right"></i>
+                            <button class="btn btn-accent" onclick="showNovaTarefaModal()">
+                                <i class="bi bi-plus-lg"></i> Nova Tarefa
                             </button>
                         </div>
                     </div>
 
-                    <div id="cronograma-container" class="card">
-                        <div class="card-body">
-                            <!-- Cronograma via JS -->
+                    <div class="cronograma-controls">
+                        <div class="cronograma-nav">
+                            <button class="btn btn-icon" onclick="mudarSemana(-1)">
+                                <i class="bi bi-chevron-left"></i>
+                            </button>
+                            <span id="cronograma-periodo">Carregando...</span>
+                            <button class="btn btn-icon" onclick="mudarSemana(1)">
+                                <i class="bi bi-chevron-right"></i>
+                            </button>
+                            <button class="btn btn-sm btn-secondary" onclick="mudarSemana(0)">Hoje</button>
                         </div>
+                        <div class="cronograma-filters">
+                            <select id="cronograma-professor" class="form-select admin-only" style="min-width: 180px;">
+                                <option value="">Meu Cronograma</option>
+                                <!-- Professores via JS -->
+                            </select>
+                            <input type="date" id="cronograma-data-inicio" class="form-input">
+                            <span>até</span>
+                            <input type="date" id="cronograma-data-fim" class="form-input">
+                            <button class="btn btn-sm btn-primary" onclick="filtrarCronograma()">Filtrar</button>
+                        </div>
+                    </div>
+
+
+                    <div class="cronograma-grid" id="cronograma-container">
+                        <!-- Cronograma via JS -->
                     </div>
                 </section>
 
-                <!-- HORAS -->
-                <section id="section-horas" class="content-section" style="display: none;">
+                <!-- ==================== RELATÓRIOS ==================== -->
+                <section id="section-relatorios" class="content-section admin-only" style="display: none;">
                     <div class="page-header">
                         <div>
-                            <h2 class="page-header-title">Controle de Horas & Pagamentos</h2>
-                            <p class="page-header-subtitle">Horas trabalhadas e remuneração por professor</p>
+                            <h2 class="page-header-title">Relatórios Financeiros</h2>
+                            <p class="page-header-subtitle">Métricas, validações e valores por professor</p>
                         </div>
-                        <select id="mes-selecionado" class="form-select" style="width: auto;"
-                            onchange="atualizarHoras()">
-                            <!-- Meses via JS -->
-                        </select>
+                        <div class="page-header-actions">
+                            <button class="btn btn-warning" onclick="recalcularValores()">
+                                <i class="bi bi-arrow-clockwise"></i> Recalcular
+                            </button>
+                            <button class="btn btn-secondary" onclick="exportarRelatorio()">
+                                <i class="bi bi-download"></i> Exportar
+                            </button>
+                        </div>
                     </div>
 
-                    <!-- Parâmetros de Remuneração -->
-                    <div class="card" style="margin-bottom: 1.5rem;">
-                        <div class="card-header">
-                            <h3 class="card-title">
-                                <i class="bi bi-cash-coin" style="margin-right: 0.5rem;"></i>
-                                Parâmetros de Remuneração
-                            </h3>
+                    <!-- Filtros do Relatório - Card Compacto -->
+                    <div class="relatorio-filtros">
+                        <div class="filtro-group">
+                            <label><i class="bi bi-calendar3"></i> Período</label>
+                            <div class="filtro-dates">
+                                <input type="date" id="relatorio-data-inicio" class="form-input">
+                                <span class="filtro-separator">até</span>
+                                <input type="date" id="relatorio-data-fim" class="form-input">
+                            </div>
                         </div>
-                        <div class="card-body">
-                            <div class="hours-grid" style="grid-template-columns: repeat(3, 1fr);">
-                                <div class="hour-item">
-                                    <div class="hour-value">R$ 27,00</div>
-                                    <div class="hour-label">Hora-aula base</div>
-                                </div>
-                                <div class="hour-item">
-                                    <div class="hour-value" style="color: var(--success);">R$ 35,91</div>
-                                    <div class="hour-label">Com bonificação (33%)</div>
-                                </div>
-                                <div class="hour-item">
-                                    <div class="hour-value">80%</div>
-                                    <div class="hour-label">Retenção</div>
-                                </div>
+                        <div class="filtro-group">
+                            <label><i class="bi bi-person"></i> Professor</label>
+                            <select id="relatorio-professor" class="form-select">
+                                <option value="">Todos os Professores</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-accent btn-lg" onclick="gerarRelatorio()">
+                            <i class="bi bi-graph-up"></i> Gerar Relatório
+                        </button>
+                    </div>
+
+                    <!-- Cards de Métricas - Design Moderno com Gradientes -->
+                    <div class="relatorio-metrics-grid">
+                        <div class="metric-card metric-card-orange">
+                            <div class="metric-icon">
+                                <i class="bi bi-clock-history"></i>
+                            </div>
+                            <div class="metric-content">
+                                <div class="metric-value" id="rel-total-horas">0h</div>
+                                <div class="metric-label">Total de Horas</div>
+                            </div>
+                        </div>
+                        <div class="metric-card metric-card-green">
+                            <div class="metric-icon">
+                                <i class="bi bi-currency-dollar"></i>
+                            </div>
+                            <div class="metric-content">
+                                <div class="metric-value" id="rel-total-valor">R$ 0,00</div>
+                                <div class="metric-label">Valor Total</div>
+                            </div>
+                        </div>
+                        <div class="metric-card metric-card-blue">
+                            <div class="metric-icon">
+                                <i class="bi bi-check2-circle"></i>
+                            </div>
+                            <div class="metric-content">
+                                <div class="metric-value" id="rel-qtd-itens">0</div>
+                                <div class="metric-label">Itens Validados</div>
+                            </div>
+                        </div>
+                        <div class="metric-card metric-card-purple">
+                            <div class="metric-icon">
+                                <i class="bi bi-people-fill"></i>
+                            </div>
+                            <div class="metric-content">
+                                <div class="metric-value" id="rel-qtd-profs">0</div>
+                                <div class="metric-label">Professores</div>
                             </div>
                         </div>
                     </div>
 
-                    <div id="horas-container">
-                        <!-- Horas via JS -->
+                    <!-- Detalhamento por Professor - Tabela Moderna -->
+                    <div class="relatorio-table-card">
+                        <div class="table-card-header">
+                            <h3><i class="bi bi-table"></i> Detalhamento por Professor</h3>
+                        </div>
+                        <div class="table-card-body" id="relatorio-detalhes">
+                            <div class="empty-state">
+                                <i class="bi bi-bar-chart-line"></i>
+                                <p>Selecione um período e clique em "Gerar Relatório"</p>
+                            </div>
+                        </div>
                     </div>
                 </section>
 
-                <!-- DADOS/CONFIG -->
+                <!-- ==================== CONFIGURAÇÕES ==================== -->
+
                 <section id="section-dados" class="content-section" style="display: none;">
                     <div class="page-header">
                         <div>
                             <h2 class="page-header-title">Configurações</h2>
-                            <p class="page-header-subtitle">Backup, importação e gerenciamento de dados</p>
+                            <p class="page-header-subtitle">Parâmetros do sistema</p>
                         </div>
                     </div>
 
-                    <div class="data-section">
-                        <h3 class="data-section-title">
-                            <i class="bi bi-database"></i>
-                            Gerenciamento de Dados
-                        </h3>
-
-                        <div class="data-actions">
-                            <button id="btn-exportar" class="btn btn-primary">
-                                <i class="bi bi-clipboard"></i>
-                                Exportar para Clipboard
-                            </button>
-                            <button id="btn-salvar-arquivo" class="btn btn-primary">
-                                <i class="bi bi-download"></i>
-                                Salvar em Arquivo
-                            </button>
-                            <button id="btn-importar" class="btn btn-secondary">
-                                <i class="bi bi-upload"></i>
-                                Importar do Clipboard
-                            </button>
-                            <button id="btn-importar-arquivo" class="btn btn-secondary">
-                                <i class="bi bi-folder2-open"></i>
-                                Importar de Arquivo
-                            </button>
-                            <button id="btn-reset" class="btn btn-danger">
-                                <i class="bi bi-trash"></i>
-                                Limpar Dados
-                            </button>
+                    <div class="settings-grid">
+                        <!-- Card Meu Perfil -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title"><i class="bi bi-person-circle"></i> Meu Perfil</h3>
+                            </div>
+                            <div class="card-body" id="meu-perfil">
+                                <!-- Perfil via JS -->
+                                <div class="profile-info">
+                                    <div class="profile-avatar" id="profile-avatar"></div>
+                                    <div class="profile-details">
+                                        <p><strong>Nome:</strong> <span id="profile-nome">Carregando...</span></p>
+                                        <p><strong>Email:</strong> <span id="profile-email">Carregando...</span></p>
+                                        <p><strong>Função:</strong> <span id="profile-role"
+                                                class="role-badge">Carregando...</span></p>
+                                        <p><strong>Telefone:</strong> <span id="profile-telefone">-</span></p>
+                                    </div>
+                                </div>
+                                <div class="profile-actions">
+                                    <button class="btn btn-secondary" onclick="showEditProfileModal()">
+                                        <i class="bi bi-pencil"></i> Editar Perfil
+                                    </button>
+                                    <button class="btn btn-secondary" onclick="showChangePasswordModal()">
+                                        <i class="bi bi-key"></i> Alterar Senha
+                                    </button>
+                                </div>
+                            </div>
                         </div>
 
-                        <textarea id="data-text" class="data-textarea"
-                            placeholder="Cole os dados JSON aqui para importar..."></textarea>
+                        <!-- Card Importação e Cronograma -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title"><i class="bi bi-calendar-check"></i> Cronograma e Importação</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="config-item">
+                                    <div class="config-info">
+                                        <strong>Importar Cronograma</strong>
+                                        <p>Importa as turmas ativas para o cronograma semanal</p>
+                                    </div>
+                                    <button class="btn btn-accent" onclick="importarCronograma()">
+                                        <i class="bi bi-cloud-download"></i> Importar
+                                    </button>
+                                </div>
+                                <div class="config-item">
+                                    <div class="config-info">
+                                        <strong>Minhas Turmas</strong>
+                                        <p>Visualize suas turmas atribuídas e progresso</p>
+                                    </div>
+                                    <button class="btn btn-secondary" onclick="showSection('turmas')">
+                                        <i class="bi bi-collection"></i> Ver Turmas
+                                    </button>
+                                </div>
+                                <div class="config-item">
+                                    <div class="config-info">
+                                        <strong>Meus Cursos</strong>
+                                        <p>Edite módulos e aulas dos seus cursos</p>
+                                    </div>
+                                    <button class="btn btn-secondary" onclick="showSection('cursos')">
+                                        <i class="bi bi-book"></i> Ver Cursos
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card de Estatísticas Pessoais -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title"><i class="bi bi-graph-up"></i> Minhas Estatísticas</h3>
+                            </div>
+                            <div class="card-body" id="minhas-estatisticas">
+                                <div class="stats-mini-grid">
+                                    <div class="stat-mini">
+                                        <span class="stat-mini-value" id="stat-minhas-turmas">0</span>
+                                        <span class="stat-mini-label">Turmas</span>
+                                    </div>
+                                    <div class="stat-mini">
+                                        <span class="stat-mini-value" id="stat-aulas-dadas">0</span>
+                                        <span class="stat-mini-label">Aulas Dadas</span>
+                                    </div>
+                                    <div class="stat-mini">
+                                        <span class="stat-mini-value" id="stat-horas-mes">0h</span>
+                                        <span class="stat-mini-label">Horas/Mês</span>
+                                    </div>
+                                    <div class="stat-mini">
+                                        <span class="stat-mini-value" id="stat-tarefas-pendentes">0</span>
+                                        <span class="stat-mini-label">Tarefas Pendentes</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card Parâmetros (Admin Only) -->
+                        <div class="card admin-only">
+                            <div class="card-header">
+                                <h3 class="card-title"><i class="bi bi-sliders"></i> Parâmetros do Sistema</h3>
+                            </div>
+                            <div class="card-body" id="parametros-container">
+                                <!-- Parâmetros via JS -->
+                            </div>
+                        </div>
                     </div>
+
                 </section>
             </div>
         </main>
     </div>
 
-    <!-- Modal de Aulas -->
-    <div class="modal" id="aula-modal">
-        <div class="modal-content" style="max-width: 800px;">
-            <div class="modal-header">
-                <h3 class="modal-title" id="modal-title">Aulas da Turma</h3>
-                <button class="modal-close" id="close-modal">&times;</button>
-            </div>
-            <div class="modal-body" id="modal-content-container">
-                <!-- Conteúdo do modal -->
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal de Professor -->
-    <div class="modal" id="professor-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="modal-title" id="professor-modal-title">Cadastrar Professor</h3>
-                <button class="modal-close" onclick="fecharModalProfessor()">&times;</button>
-            </div>
-            <div class="modal-body">
-                <form id="professor-form">
-                    <div class="form-group">
-                        <label class="form-label">Nome Completo *</label>
-                        <input type="text" id="prof-nome" class="form-input" required placeholder="Nome do professor">
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">E-mail</label>
-                        <input type="email" id="prof-email" class="form-input" placeholder="email@exemplo.com">
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Telefone</label>
-                        <input type="tel" id="prof-telefone" class="form-input" placeholder="(00) 00000-0000">
-                    </div>
-
-                    <h4
-                        style="margin: 1.5rem 0 1rem; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">
-                        <i class="bi bi-building"></i>
-                        Dados MEI
-                    </h4>
-
-                    <div class="form-group">
-                        <label class="form-label">CNPJ</label>
-                        <input type="text" id="prof-cnpj" class="form-input" placeholder="00.000.000/0001-00">
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Razão Social</label>
-                        <input type="text" id="prof-razao" class="form-input" placeholder="Nome da empresa ME">
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Módulos/Cursos</label>
-                        <div class="checkbox-group">
-                            <div class="checkbox-item">
-                                <input type="checkbox" name="modulos" value="canva" id="mod-canva">
-                                <label for="mod-canva">Canva</label>
-                            </div>
-                            <div class="checkbox-item">
-                                <input type="checkbox" name="modulos" value="figma" id="mod-figma">
-                                <label for="mod-figma">Figma</label>
-                            </div>
-                            <div class="checkbox-item">
-                                <input type="checkbox" name="modulos" value="excel" id="mod-excel">
-                                <label for="mod-excel">Excel</label>
-                            </div>
-                            <div class="checkbox-item">
-                                <input type="checkbox" name="modulos" value="word" id="mod-word">
-                                <label for="mod-word">Word</label>
-                            </div>
-                            <div class="checkbox-item">
-                                <input type="checkbox" name="modulos" value="unity" id="mod-unity">
-                                <label for="mod-unity">Unity</label>
-                            </div>
-                            <div class="checkbox-item">
-                                <input type="checkbox" name="modulos" value="informatica_powerbi" id="mod-powerbi">
-                                <label for="mod-powerbi">Power BI</label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-actions">
-                        <button type="button" class="btn btn-secondary"
-                            onclick="fecharModalProfessor()">Cancelar</button>
-                        <button type="submit" class="btn btn-accent">
-                            <i class="bi bi-check-lg"></i>
-                            Salvar Professor
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Notificação -->
+    <!-- Notification -->
     <div class="notification" id="notification">
         <i class="bi bi-check-circle"></i>
-        <span>Alterações salvas com sucesso!</span>
+        <span></span>
     </div>
 
+    <!-- Scripts -->
     <script src="api.js"></script>
-    <script src="script.js"></script>
-    <script>
-        // Verificar autenticação ao carregar
-        (async () => {
-            const isAuth = await API.checkAuth();
-            if (!isAuth) {
-                window.location.href = 'login.html';
-                return;
-            }
-
-            // Atualizar UI com info do usuário
-            const user = API.getCurrentUser();
-            const userNameEl = document.querySelector('.user-name-sidebar');
-            const userEmailEl = document.querySelector('.user-email-sidebar');
-            const userAvatarEl = document.querySelector('.user-avatar');
-
-            if (userNameEl) userNameEl.textContent = user.nome;
-            if (userEmailEl) userEmailEl.textContent = user.email;
-            if (userAvatarEl) userAvatarEl.textContent = user.nome.charAt(0).toUpperCase();
-
-            // Mostrar/ocultar seções admin-only
-            if (!API.isAdmin()) {
-                const profsMenuItem = document.querySelector('[data-section="professores"]');
-                if (profsMenuItem) profsMenuItem.style.display = 'none';
-            }
-        })();
-    </script>
+    <script src="js/utils.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script src="js/turmas.js"></script>
+    <script src="js/cursos.js"></script>
+    <script src="js/cronograma.js"></script>
+    <script src="js/professores.js"></script>
+    <script src="js/relatorios.js"></script>
+    <script src="js/configuracoes.js"></script>
+    <script src="app.js"></script>
 </body>
 
 </html>
