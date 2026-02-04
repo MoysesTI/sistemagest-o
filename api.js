@@ -1,7 +1,9 @@
-// Detecta se está em desenvolvimento (localhost com porta separada) ou produção (nginx proxy)
-const API_BASE = window.location.hostname === 'localhost' && window.location.port === '3000'
-    ? 'http://localhost:5001/api'  // Desenvolvimento local
-    : '/api';                       // Produção (nginx faz proxy)
+// Detecta ambiente: desenvolvimento local ou produção (Render)
+const API_BASE = window.location.hostname.includes('onrender.com')
+    ? 'https://gestao-aulas-api.onrender.com/api'  // Produção Render
+    : (window.location.hostname === 'localhost' && window.location.port === '3000'
+        ? 'http://localhost:5001/api'  // Desenvolvimento local
+        : '/api');                      // Docker/Nginx proxy
 
 const API = {
     getToken: () => localStorage.getItem('auth_token'),
