@@ -1,9 +1,12 @@
 // Detecta ambiente: desenvolvimento local ou produção (Render)
+const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 const API_BASE = window.location.hostname.includes('onrender.com')
     ? 'https://gestao-aulas-api.onrender.com/api'  // Produção Render
-    : (window.location.hostname === 'localhost' && window.location.port === '3000'
+    : isLocal
         ? 'http://localhost:5001/api'  // Desenvolvimento local
-        : '/api');                      // Docker/Nginx proxy
+        : '/api';                      // Docker/Nginx proxy
+
+console.log('API Base URL:', API_BASE); // Debug
 
 const API = {
     getToken: () => localStorage.getItem('auth_token'),
@@ -145,9 +148,13 @@ const API = {
     },
 
     cronograma: {
-        listar: (dataInicio, dataFim) => {
+        listar: (dataInicio, dataFim, professorId) => {
+            const params = [];
+            if (dataInicio) params.push(`dataInicio=${dataInicio}`);
+            if (dataFim) params.push(`dataFim=${dataFim}`);
+            if (professorId) params.push(`professorId=${professorId}`);
             let url = '/cronograma';
-            if (dataInicio && dataFim) url += `?dataInicio=${dataInicio}&dataFim=${dataFim}`;
+            if (params.length > 0) url += '?' + params.join('&');
             return API.request(url);
         },
         importar: (dataInicio, dataFim) => API.request('/cronograma/importar', {
@@ -168,7 +175,13 @@ const API = {
             method: 'POST',
             body: JSON.stringify({ turmaId, data })
         }),
-        recalcular: () => API.request('/cronograma/recalcular', { method: 'POST' })
+        recalcular: () => API.request('/cronograma/recalcular', { method: 'POST' }),
+        // NOVOS MÉTODOS
+        registrarConteudo: (id, dados) => API.request(`/cronograma/${id}/conteudo`, {
+            method: 'PUT',
+            body: JSON.stringify(dados)
+        }),
+        buscarModulosAulas: (cursoId) => API.request(`/cursos/${cursoId}/modulos-aulas`)
     },
 
     relatorios: {

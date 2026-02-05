@@ -105,11 +105,6 @@ const Turmas = {
                     <button class="btn btn-sm btn-secondary" onclick="showTurmaDetails('${turma.id}')">
                         <i class="bi bi-eye"></i> Detalhes
                     </button>
-                    ${turma.status !== 'CONCLUIDA' ? `
-                        <button class="btn btn-sm btn-accent" onclick="avancarAula('${turma.id}')">
-                            <i class="bi bi-check-lg"></i> Marcar Aula
-                        </button>
-                    ` : ''}
                 </div>
             </div>
         `;

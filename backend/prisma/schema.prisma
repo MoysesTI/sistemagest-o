@@ -82,6 +82,10 @@ model User {
   registrosHora     RegistroHora[]
   modulosLecionados ProfessorModulo[]
 
+  // Módulos e aulas personalizados do professor
+  modulosPersonalizados Modulo[] @relation("ProfessorModulos")
+  aulasPersonalizadas   Aula[]   @relation("ProfessorAulas")
+
   @@map("users")
 }
 
@@ -123,14 +127,20 @@ model Modulo {
   // Arquivo de referência do módulo
   arquivoReferencia String?
 
-  // Relacionamentos
-  cursoId      String
-  curso        Curso             @relation(fields: [cursoId], references: [id], onDelete: Cascade)
-  aulas        Aula[]
-  professores  ProfessorModulo[]
-  turmaModulos TurmaModulo[]
+  // Professor dono (null = template original, preenchido = cópia personalizada)
+  professorId String?
+  professor   User?   @relation("ProfessorModulos", fields: [professorId], references: [id])
 
-  @@unique([cursoId, codigo])
+  // Relacionamentos
+  cursoId         String
+  curso           Curso             @relation(fields: [cursoId], references: [id], onDelete: Cascade)
+  aulas           Aula[]
+  professores     ProfessorModulo[]
+  turmaModulos    TurmaModulo[]
+  cronogramaItems CronogramaItem[] // Módulos ministrados no cronograma
+
+  // Código único por curso + professor (permite mesmo código para professores diferentes)
+  @@unique([cursoId, codigo, professorId])
   @@map("modulos")
 }
 
@@ -153,11 +163,17 @@ model Aula {
   // Tópicos da aula (array de strings)
   topicos String[]
 
-  // Relacionamentos
-  moduloId String
-  modulo   Modulo @relation(fields: [moduloId], references: [id], onDelete: Cascade)
+  // Professor dono (null = template original, preenchido = cópia personalizada)
+  professorId String?
+  professor   User?   @relation("ProfessorAulas", fields: [professorId], references: [id])
 
-  @@unique([moduloId, numero])
+  // Relacionamentos
+  moduloId        String
+  modulo          Modulo           @relation(fields: [moduloId], references: [id], onDelete: Cascade)
+  cronogramaItems CronogramaItem[] // Aulas ministradas no cronograma
+
+  // Número único por módulo + professor (permite mesmo número para professores diferentes)
+  @@unique([moduloId, numero, professorId])
   @@map("aulas")
 }
 
@@ -242,6 +258,15 @@ model CronogramaItem {
   bonusAplicado  Float? // Percentual de bônus (ex: 33)
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
+
+  // Conteúdo ministrado (obrigatório para check)
+  conteudoMinistrado String? // Descrição do que foi passado na aula
+
+  // Referência ao módulo/aula do curso (opcional)
+  moduloId String?
+  modulo   Modulo? @relation(fields: [moduloId], references: [id])
+  aulaId   String?
+  aula     Aula?   @relation(fields: [aulaId], references: [id])
 
   // Relacionamentos
   professorId   String

@@ -181,9 +181,8 @@ window.importarCronograma = importarCronograma;
 window.toggleCronogramaCheck = toggleCronogramaCheck;
 window.closeModal = closeModal;
 // showTurmaDetails, showEditTurmaModal e submitEditTurma são exportados de turmas.js
-window.editCurso = (id) => console.log('Editar curso:', id);
-window.deleteCurso = (id) => console.log('Deletar curso:', id);
-window.editProfessor = (id) => console.log('Editar professor:', id);
+// Funções editCurso e deleteCurso são expostas em cursos.js
+// editProfessor será implementado futuramente em professores.js
 // Edição de módulos e aulas
 window.showEditModuloModal = showEditModuloModal;
 window.submitEditModulo = submitEditModulo;

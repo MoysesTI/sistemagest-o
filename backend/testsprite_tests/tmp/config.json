@@ -1,0 +1,18 @@
+{
+  "status": "init",
+  "type": "backend",
+  "scope": "codebase",
+  "localEndpoint": "http://localhost:5001/",
+  "backendAuthType": "public",
+  "executionArgs": {
+    "projectName": "backend",
+    "projectPath": "c:\\Users\\MOYSES\\Downloads\\Controle-de-aula-main\\Controle-de-aula-main\\backend",
+    "testIds": [],
+    "additionalInstruction": "Use admin@prismatech.com and admin123 for authentication tests. The database is already seeded, so rely on existing data where possible or create unique data carefully.",
+    "envs": {
+      "API_KEY": "sk-user-9c49GuxY12wl7miGVQrexrxO6HLdIrb8kRyMcPS2_O2p5Hu1yjJjsHXRk4ivORxTK00nyHAV9QhcoabZUS6h4f69EUuiKX8bFu72s_Q0RhgJZB7RA_sQ3UHabaHgQnn3wZw"
+    }
+  },
+  "serverPort": 55479,
+  "proxy": "http://21a49157-44f5-4529-a5d6-ca6915507e1a:y8jz8rDBcfqBI7HdlO7apXII8YDv53vj@tun.testsprite.com:8080"
+}

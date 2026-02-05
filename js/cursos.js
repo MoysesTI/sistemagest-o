@@ -76,7 +76,31 @@ const Cursos = {
                     
                     <div class="modulos-list" id="modulos-${curso.id}">
                         ${curso.modulos?.length === 0 ? '<p class="no-modulos">Nenhum módulo</p>' : ''}
-                        ${(curso.modulos || []).map(modulo => Cursos.createModuloItem(modulo)).join('')}
+                        ${(() => {
+                const modulos = curso.modulos || [];
+                const grupos = {};
+
+                // Agrupar por professor
+                modulos.forEach(m => {
+                    const key = m.professor ? m.professor.nome : 'Módulos Gerais';
+                    if (!grupos[key]) grupos[key] = [];
+                    grupos[key].push(m);
+                });
+
+                // Ordenar chaves: Gerais primeiro, depois alfabético
+                const keys = Object.keys(grupos).sort((a, b) => {
+                    if (a === 'Módulos Gerais') return -1;
+                    if (b === 'Módulos Gerais') return 1;
+                    return a.localeCompare(b);
+                });
+
+                return keys.map(key => `
+                                <div class="grupo-modulos mb-3">
+                                    ${keys.length > 1 || key !== 'Módulos Gerais' ? `<h6 class="text-muted border-bottom pb-1 mb-2 mt-3 small text-uppercase fw-bold">${key}</h6>` : ''}
+                                    ${grupos[key].map(m => Cursos.createModuloItem(m)).join('')}
+                                </div>
+                            `).join('');
+            })()}
                     </div>
                 </div>
             </div>
@@ -85,29 +109,50 @@ const Cursos = {
 
     createModuloItem(modulo) {
         const totalAulas = modulo.aulas?.length || 0;
-        const canEdit = true;
+        const isAdmin = API.isAdmin();
+        const token = API.getToken();
+        const payload = token ? JSON.parse(atob(token.split('.')[1])) : null;
+        const currentUserId = payload ? (payload.userId || payload.id) : null;
+
+        // Professor pode editar apenas seus próprios módulos
+        // Templates (professorId = null) são read-only para professores
+        // IMPORTANTE: Converter para string para evitar erros de tipo (int vs string)
+        const canEdit = isAdmin || (modulo.professorId && String(modulo.professorId) === String(currentUserId));
+        const isTemplate = !modulo.professorId;
+
+        // Indicador visual de template vs módulo do professor
+        const templateBadge = isTemplate ? '<span class="badge-template" title="Template original">📋</span>' : '';
+        const ownerBadge = modulo.professor ? `<span class="badge-owner" title="Módulo de ${modulo.professor.nome}">${modulo.professor.nome}</span>` : '';
 
         return `
-            <div class="modulo-item">
+            <div class="modulo-item ${isTemplate ? 'template' : ''}">
                 <div class="modulo-header" onclick="toggleModuloAulas('${modulo.id}')">
                     <i class="bi bi-chevron-right modulo-chevron" id="chevron-${modulo.id}"></i>
                     <span class="modulo-nome">${modulo.nome}</span>
+                    ${templateBadge}
+                    ${ownerBadge ? ownerBadge : ''}
                     <span class="modulo-aulas">${totalAulas} aulas</span>
                     ${modulo.arquivoReferencia ? `<a href="${modulo.arquivoReferencia}" target="_blank" class="modulo-link" onclick="event.stopPropagation()"><i class="bi bi-link-45deg"></i></a>` : ''}
                     ${canEdit ? `
                         <button class="btn btn-icon small" onclick="event.stopPropagation(); showNovaAulaModal('${modulo.id}')" title="Adicionar aula"><i class="bi bi-plus"></i></button>
                         <button class="btn btn-icon small" onclick="event.stopPropagation(); showEditModuloModal('${modulo.id}')" title="Editar módulo"><i class="bi bi-pencil"></i></button>
+                        <button class="btn btn-icon small danger" onclick="event.stopPropagation(); deleteModulo('${modulo.id}')" title="Excluir módulo"><i class="bi bi-trash"></i></button>
                     ` : ''}
                 </div>
                 <div class="modulo-aulas-list" id="aulas-${modulo.id}" style="display: none;">
-                    ${(modulo.aulas || []).map(aula => `
+                    ${(modulo.aulas || []).map(aula => {
+            const canEditAula = isAdmin || (aula.professorId && String(aula.professorId) === String(currentUserId));
+            return `
                         <div class="aula-item">
                             <span class="aula-numero">${aula.numero}</span>
                             <span class="aula-titulo">${aula.titulo}</span>
                             ${aula.arquivoReferencia ? `<a href="${aula.arquivoReferencia}" target="_blank"><i class="bi bi-link"></i></a>` : ''}
-                            ${canEdit ? `<button class="btn btn-icon small" onclick="showEditAulaModal('${aula.id}')" title="Editar aula"><i class="bi bi-pencil"></i></button>` : ''}
+                            ${canEditAula ? `
+                                <button class="btn btn-icon small" onclick="showEditAulaModal('${aula.id}')" title="Editar aula"><i class="bi bi-pencil"></i></button>
+                                <button class="btn btn-icon small danger" onclick="deleteAula('${aula.id}')" title="Excluir aula"><i class="bi bi-trash"></i></button>
+                            ` : ''}
                         </div>
-                    `).join('')}
+                    `}).join('')}
                 </div>
             </div>
         `;
@@ -497,6 +542,100 @@ const Cursos = {
         } catch (error) {
             showNotification('Erro: ' + error.message, 'error');
         }
+    },
+
+    // ==========================================
+    // EDIÇÃO E EXCLUSÃO DE CURSOS (ADMIN)
+    // ==========================================
+
+    async showEditCursoModal(cursoId) {
+        const curso = cursosCache.find(c => c.id === cursoId);
+        if (!curso) {
+            showNotification('Curso não encontrado', 'error');
+            return;
+        }
+
+        let modal = document.getElementById('modal-edit-curso');
+        if (modal) modal.remove(); // Remover para recriar com dados atuais
+
+        modal = createModal('modal-edit-curso', 'Editar Curso', `
+            <form id="form-edit-curso" onsubmit="submitEditCurso(event, '${cursoId}')">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Código *</label>
+                        <input type="text" id="edit-curso-codigo" class="form-input" required value="${curso.codigo || ''}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Cor</label>
+                        <input type="color" id="edit-curso-cor" class="form-input" value="${curso.cor || '#2980b9'}">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Nome *</label>
+                    <input type="text" id="edit-curso-nome" class="form-input" required value="${curso.nome || ''}">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Descrição</label>
+                    <textarea id="edit-curso-descricao" class="form-input" rows="2">${curso.descricao || ''}</textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Link do Arquivo de Referência</label>
+                    <input type="url" id="edit-curso-arquivo" class="form-input" value="${curso.arquivoReferencia || ''}">
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('modal-edit-curso')">Cancelar</button>
+                    <button type="submit" class="btn btn-accent"><i class="bi bi-check-lg"></i> Salvar</button>
+                </div>
+            </form>
+        `);
+        document.body.appendChild(modal);
+        modal.classList.add('active');
+    },
+
+    async submitEditCurso(e, cursoId) {
+        e.preventDefault();
+
+        const data = {
+            codigo: document.getElementById('edit-curso-codigo').value,
+            nome: document.getElementById('edit-curso-nome').value,
+            descricao: document.getElementById('edit-curso-descricao').value,
+            cor: document.getElementById('edit-curso-cor').value,
+            arquivoReferencia: document.getElementById('edit-curso-arquivo').value || null
+        };
+
+        try {
+            await API.cursos.atualizar(cursoId, data);
+            showNotification('Curso atualizado com sucesso!', 'success');
+            closeModal('modal-edit-curso');
+            cursosCache = await API.cursos.listar();
+            Cursos.render();
+            await updateDashboard();
+        } catch (error) {
+            showNotification('Erro: ' + error.message, 'error');
+        }
+    },
+
+    async deleteCurso(cursoId) {
+        const curso = cursosCache.find(c => c.id === cursoId);
+        const nome = curso?.nome || 'este curso';
+
+        if (!confirm(`Tem certeza que deseja excluir "${nome}"?\n\nATENÇÃO: Isso irá excluir também todos os módulos e aulas deste curso!`)) {
+            return;
+        }
+
+        try {
+            await API.cursos.excluir(cursoId);
+            showNotification('Curso excluído com sucesso!', 'success');
+            cursosCache = await API.cursos.listar();
+            Cursos.render();
+            await updateDashboard();
+        } catch (error) {
+            showNotification('Erro ao excluir: ' + error.message, 'error');
+        }
     }
 };
 
@@ -516,3 +655,34 @@ window.showEditModuloModal = Cursos.showEditModuloModal.bind(Cursos);
 window.submitEditModulo = Cursos.submitEditModulo.bind(Cursos);
 window.showEditAulaModal = Cursos.showEditAulaModal.bind(Cursos);
 window.submitEditAula = Cursos.submitEditAula.bind(Cursos);
+// Novas funções de edição/exclusão de cursos
+window.editCurso = Cursos.showEditCursoModal.bind(Cursos);
+window.submitEditCurso = Cursos.submitEditCurso.bind(Cursos);
+window.deleteCurso = Cursos.deleteCurso.bind(Cursos);
+
+// Funções de exclusão de módulos e aulas
+window.deleteModulo = async function (moduloId) {
+    if (!confirm('Tem certeza que deseja excluir este módulo e todas as suas aulas?')) return;
+
+    try {
+        await API.cursos.excluirModulo(moduloId);
+        showNotification('Módulo excluído com sucesso!', 'success');
+        cursosCache = await API.cursos.listar();
+        Cursos.render();
+    } catch (error) {
+        showNotification('Erro ao excluir: ' + error.message, 'error');
+    }
+};
+
+window.deleteAula = async function (aulaId) {
+    if (!confirm('Tem certeza que deseja excluir esta aula?')) return;
+
+    try {
+        await API.cursos.excluirAula(aulaId);
+        showNotification('Aula excluída com sucesso!', 'success');
+        cursosCache = await API.cursos.listar();
+        Cursos.render();
+    } catch (error) {
+        showNotification('Erro ao excluir: ' + error.message, 'error');
+    }
+};

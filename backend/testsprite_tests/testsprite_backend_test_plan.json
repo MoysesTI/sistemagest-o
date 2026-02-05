@@ -1,0 +1,52 @@
+[
+  {
+    "id": "TC001",
+    "title": "user login functionality",
+    "description": "Test the user login endpoint to verify successful authentication with valid credentials and proper error handling with invalid credentials."
+  },
+  {
+    "id": "TC002",
+    "title": "user registration process",
+    "description": "Validate the user registration endpoint to ensure new users can register successfully and duplicate or invalid data is handled correctly."
+  },
+  {
+    "id": "TC003",
+    "title": "retrieve logged in user data",
+    "description": "Check the endpoint for retrieving logged-in user data to confirm it returns accurate user information when authenticated and denies access when not."
+  },
+  {
+    "id": "TC004",
+    "title": "list schedule entries",
+    "description": "Test the schedule listing endpoint to ensure it returns the correct schedule data for authenticated users."
+  },
+  {
+    "id": "TC005",
+    "title": "import class schedules",
+    "description": "Verify the schedule import endpoint to confirm that class schedules can be imported correctly and handle invalid import data gracefully."
+  },
+  {
+    "id": "TC006",
+    "title": "mark lesson or task as completed",
+    "description": "Test the endpoint for marking a lesson or task as completed to ensure the status updates correctly and invalid IDs are handled."
+  },
+  {
+    "id": "TC007",
+    "title": "register taught content for lesson",
+    "description": "Validate the endpoint for registering content taught in a lesson to ensure content is recorded properly and errors are managed."
+  },
+  {
+    "id": "TC008",
+    "title": "manage class groups",
+    "description": "Test the class groups API endpoints for creating, listing, updating, and deleting class groups to verify full CRUD functionality."
+  },
+  {
+    "id": "TC009",
+    "title": "manage courses and modules",
+    "description": "Verify the courses API endpoints for listing courses, creating new courses, and adding modules to courses to ensure proper course management."
+  },
+  {
+    "id": "TC010",
+    "title": "manage extra non academic tasks",
+    "description": "Test the extra tasks API endpoints for creating, listing, and marking tasks as completed to ensure accurate task management."
+  }
+]

@@ -1,0 +1,166 @@
+{
+    "tech_stack": [
+        "JavaScript",
+        "Node.js",
+        "Express.js",
+        "Prisma",
+        "PostgreSQL",
+        "JWT"
+    ],
+    "features": [
+        {
+            "name": "Auth API",
+            "description": "Autenticação e gestão de usuários",
+            "files": [
+                "backend/server.js"
+            ],
+            "api_doc": {
+                "openapi": "3.0.0",
+                "paths": {
+                    "/api/auth/login": {
+                        "post": {
+                            "summary": "Login de usuário",
+                            "requestBody": {
+                                "content": {
+                                    "application/json": {
+                                        "schema": {
+                                            "type": "object",
+                                            "properties": {
+                                                "email": {
+                                                    "type": "string"
+                                                },
+                                                "senha": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "/api/auth/register": {
+                        "post": {
+                            "summary": "Registro de usuário"
+                        }
+                    },
+                    "/api/auth/me": {
+                        "get": {
+                            "summary": "Dados do usuário logado"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "name": "Cronograma API",
+            "description": "Gestão de aulas, cronogramas e presença",
+            "files": [
+                "backend/server.js"
+            ],
+            "api_doc": {
+                "openapi": "3.0.0",
+                "paths": {
+                    "/api/cronograma": {
+                        "get": {
+                            "summary": "Listar cronograma"
+                        }
+                    },
+                    "/api/cronograma/importar": {
+                        "post": {
+                            "summary": "Importar cronograma de turmas"
+                        }
+                    },
+                    "/api/cronograma/{id}/check": {
+                        "put": {
+                            "summary": "Marcar aula/tarefa como realizada"
+                        }
+                    },
+                    "/api/cronograma/{id}/conteudo": {
+                        "put": {
+                            "summary": "Registrar conteúdo ministrado"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "name": "Turmas API",
+            "description": "Gestão de turmas",
+            "files": [
+                "backend/server.js"
+            ],
+            "api_doc": {
+                "openapi": "3.0.0",
+                "paths": {
+                    "/api/turmas": {
+                        "get": {
+                            "summary": "Listar turmas"
+                        },
+                        "post": {
+                            "summary": "Criar turma"
+                        }
+                    },
+                    "/api/turmas/{id}": {
+                        "put": {
+                            "summary": "Atualizar turma"
+                        },
+                        "delete": {
+                            "summary": "Excluir turma"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "name": "Cursos API",
+            "description": "Gestão de cursos e módulos",
+            "files": [
+                "backend/server.js"
+            ],
+            "api_doc": {
+                "openapi": "3.0.0",
+                "paths": {
+                    "/api/cursos": {
+                        "get": {
+                            "summary": "Listar cursos"
+                        },
+                        "post": {
+                            "summary": "Criar curso"
+                        }
+                    },
+                    "/api/cursos/{id}/modulos": {
+                        "post": {
+                            "summary": "Adicionar módulo ao curso"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "name": "Tarefas Extras API",
+            "description": "Gestão de tarefas extras não letivas",
+            "files": [
+                "backend/server.js"
+            ],
+            "api_doc": {
+                "openapi": "3.0.0",
+                "paths": {
+                    "/api/tarefas-extras": {
+                        "get": {
+                            "summary": "Listar tarefas"
+                        },
+                        "post": {
+                            "summary": "Criar tarefa"
+                        }
+                    },
+                    "/api/tarefas-extras/{id}/concluir": {
+                        "put": {
+                            "summary": "Concluir tarefa"
+                        }
+                    }
+                }
+            }
+        }
+    ]
+}

@@ -1583,7 +1583,7 @@ header {
 .auth-card {
     width: 100%;
     max-width: 400px;
-    background: var(--bg-card);
+    background: #d3dadaff;
     border-radius: var(--border-radius-lg);
     box-shadow: var(--shadow-lg);
     padding: 2.5rem;
@@ -3483,3 +3483,56 @@ textarea.form-input {
     background: #2563eb;
 }
 
+/* ==========================================
+   CRONOGRAMA - NOVOS ESTILOS
+   ========================================== */
+
+/* Botão de registrar conteúdo (professor) */
+.btn-content {
+    background: var(--info);
+    color: white;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+}
+
+.btn-content:hover {
+    background: #2563eb;
+    transform: scale(1.05);
+}
+
+/* Badge de aguardando validação */
+.badge-status.aguardando {
+    background: var(--warning);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Item do cronograma aguardando validação */
+.cronograma-item.aguardando-validacao {
+    border-left-width: 4px;
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, transparent 100%);
+}
+
+.cronograma-item.aguardando-validacao::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 8px;
+    height: 8px;
+    background: var(--warning);
+    border-radius: 50%;
+    margin: 8px;
+}
