@@ -923,7 +923,9 @@ app.get('/api/cronograma/:id', authMiddleware, async (req, res) => {
             include: {
                 professor: { select: { id: true, nome: true } },
                 turma: { select: { id: true, nome: true, curso: { select: { nome: true, cor: true } } } },
-                tarefaExtra: true
+                tarefaExtra: true,
+                modulo: { select: { nome: true } },
+                aula: { select: { titulo: true, numero: true } }
             }
         });
 

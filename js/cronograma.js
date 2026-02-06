@@ -521,16 +521,39 @@ const Cronograma = {
                         <label>Valor:</label>
                         <span class="valor">R$ ${valorCalculado.toFixed(2)}</span>
                     </div>
+
+                    ${!isTarefa && item.modulo ? `
+                        <div class="detail-row">
+                            <label>Módulo:</label>
+                            <span>${item.modulo.nome}</span>
+                        </div>
+                    ` : ''}
+
+                    ${!isTarefa && item.aula ? `
+                        <div class="detail-row">
+                            <label>Aula:</label>
+                            <span>${item.aula.numero} - ${item.aula.titulo}</span>
+                        </div>
+                    ` : ''}
+
                     ${isTarefa ? `
                         <div class="detail-row">
                             <label>Descrição:</label>
                             <p>${descricao}</p>
                         </div>
                     ` : ''}
+
                     <div class="detail-row">
                         <label>Status:</label>
                         <span class="badge ${item.realizada ? 'badge-success' : 'badge-pending'}">${item.realizada ? 'Realizada' : 'Pendente'}</span>
                     </div>
+
+                    ${!isTarefa && item.conteudoMinistrado ? `
+                        <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid var(--border-color);">
+                            <label style="display: block; margin-bottom: 8px; color: var(--text-primary); font-weight: 600; font-size: 0.9rem;">Conteúdo Ministrado</label>
+                            <div style="width: 100%; white-space: pre-wrap; color: var(--text-secondary); padding: 12px; background: var(--bg-hover); border-radius: var(--border-radius-sm); border: 1px solid var(--border-color); font-size: 0.9rem; line-height: 1.5;">${item.conteudoMinistrado}</div>
+                        </div>
+                    ` : ''}
                 </div>
                 <div class="modal-actions">
                     ${canEdit && isTarefa ? `<button class="btn btn-primary" onclick="showEditCronogramaItemModal('${item.id}')"><i class="bi bi-pencil"></i> Editar</button>` : ''}
