@@ -354,14 +354,29 @@ app.get('/api/cursos', authMiddleware, async (req, res) => {
 // Endpoint para buscar módulos e aulas de um curso específico (para modal de conteúdo)
 app.get('/api/cursos/:id/modulos-aulas', authMiddleware, async (req, res) => {
     try {
+        const userId = req.user.id;
+        const isAdmin = req.user.role === 'ADMIN';
+
+        // Filtro de módulos e aulas: Admin vê tudo, Professor vê templates (null) + seus próprios
+        // Mesma lógica do GET /api/cursos
+        const filterWhere = {
+            ativo: true,
+            ...(isAdmin ? {} : {
+                OR: [
+                    { professorId: null },
+                    { professorId: userId }
+                ]
+            })
+        };
+
         const curso = await prisma.curso.findUnique({
             where: { id: req.params.id },
             include: {
                 modulos: {
-                    where: { ativo: true },
+                    where: filterWhere,
                     include: {
                         aulas: {
-                            where: { ativo: true },
+                            where: filterWhere,
                             orderBy: { numero: 'asc' }
                         }
                     },
@@ -1274,7 +1289,16 @@ app.put('/api/cronograma/:id/validar', authMiddleware, adminMiddleware, async (r
         // Calcular duração e valor
         const [horaIni, minIni] = item.horaInicio.split(':').map(Number);
         const [horaFim, minFim] = item.horaFim.split(':').map(Number);
-        const duracaoMinutos = (horaFim * 60 + minFim) - (horaIni * 60 + minIni);
+
+        let totalMinutosInicio = horaIni * 60 + minIni;
+        let totalMinutosFim = horaFim * 60 + minFim;
+
+        // Se terminar no dia seguinte, rejeitar (conforme solicitação)
+        if (totalMinutosFim <= totalMinutosInicio) {
+            return res.status(400).json({ error: 'A hora de término deve ser posterior à hora de início.' });
+        }
+
+        const duracaoMinutos = totalMinutosFim - totalMinutosInicio;
 
         // Buscar valor da hora no banco ou usar padrão
         const valorHoraParam = await prisma.parametro.findUnique({ where: { chave: 'VALOR_HORA_AULA' } });
@@ -1437,7 +1461,17 @@ app.post('/api/cronograma/recalcular', authMiddleware, adminMiddleware, async (r
             // Calcular duração
             const [horaIni, minIni] = item.horaInicio.split(':').map(Number);
             const [horaFim, minFim] = item.horaFim.split(':').map(Number);
-            const duracaoMinutos = (horaFim * 60 + minFim) - (horaIni * 60 + minIni);
+
+            let totalMinutosInicio = horaIni * 60 + minIni;
+            let totalMinutosFim = horaFim * 60 + minFim;
+
+            if (totalMinutosFim <= totalMinutosInicio) {
+                // Pular itens inválidos no recálculo em massa para não quebrar o loop
+                console.warn(`Item ${item.id} ignorado: Hora fim menor ou igual a hora início.`);
+                continue;
+            }
+
+            const duracaoMinutos = totalMinutosFim - totalMinutosInicio;
             const valorCalculado = (duracaoMinutos / 60) * valorHora;
 
             await prisma.cronogramaItem.update({
@@ -1490,12 +1524,27 @@ app.post('/api/tarefas-extras', authMiddleware, [
     try {
         const { tipo, titulo, descricao, data, horaInicio, horaFim } = req.body;
 
+        // Calcular duração (agora no backend para garantir consistência)
+        const [horaIni, minIni] = horaInicio.split(':').map(Number);
+        const [horaFimArr, minFim] = horaFim.split(':').map(Number);
+
+        let totalMinutosInicio = horaIni * 60 + minIni;
+        let totalMinutosFim = horaFimArr * 60 + minFim;
+
+        // Validação Estrita: Hora Fim > Hora Início
+        if (totalMinutosFim <= totalMinutosInicio) {
+            return res.status(400).json({ error: 'A hora de término deve ser posterior à hora de início.' });
+        }
+
+        const duracaoMinutos = totalMinutosFim - totalMinutosInicio;
+
         const tarefa = await prisma.tarefaExtra.create({
             data: {
                 professorId: req.user.id,
                 tipo, titulo, descricao,
                 data: new Date(data),
-                horaInicio, horaFim
+                horaInicio, horaFim,
+                duracaoMinutos // Salvar duração calculada na tabela original também
             }
         });
 
@@ -1506,6 +1555,7 @@ app.post('/api/tarefas-extras', authMiddleware, [
                 tarefaExtraId: tarefa.id,
                 data: new Date(data),
                 horaInicio, horaFim,
+                duracaoMinutos, // Salvar duração calculada
                 descricao: `${tipo}: ${titulo}`
             }
         });
@@ -1528,7 +1578,15 @@ app.put('/api/tarefas-extras/:id/concluir', authMiddleware, async (req, res) => 
 
         const [horaIni, minIni] = tarefa.horaInicio.split(':').map(Number);
         const [horaFim, minFim] = tarefa.horaFim.split(':').map(Number);
-        const duracaoMinutos = (horaFim * 60 + minFim) - (horaIni * 60 + minIni);
+
+        let totalMinutosInicio = horaIni * 60 + minIni;
+        let totalMinutosFim = horaFim * 60 + minFim;
+
+        if (totalMinutosFim <= totalMinutosInicio) {
+            return res.status(400).json({ error: 'A hora de término deve ser posterior à hora de início.' });
+        }
+
+        const duracaoMinutos = totalMinutosFim - totalMinutosInicio;
         const valorHora = parseFloat(process.env.VALOR_HORA_AULA) || 27.00;
 
         await prisma.registroHora.create({

@@ -458,6 +458,19 @@ const Cronograma = {
             descricao: document.getElementById('tarefa-descricao').value
         };
 
+        // Validação de horário
+        if (data.horaInicio && data.horaFim) {
+            const [hIni, mIni] = data.horaInicio.split(':').map(Number);
+            const [hFim, mFim] = data.horaFim.split(':').map(Number);
+            const minutosInicio = hIni * 60 + mIni;
+            const minutosFim = hFim * 60 + mFim;
+
+            if (minutosFim <= minutosInicio) {
+                showNotification('A hora de término deve ser posterior à hora de início.', 'warning');
+                return;
+            }
+        }
+
         try {
             await API.tarefas.criar(data);
             showNotification('Tarefa criada com sucesso!', 'success');
@@ -722,104 +735,74 @@ const Cronograma = {
 
             const item = response;
             const turma = item.turma || {};
-            const cursoId = turma.cursoId || turma.curso?.id;
+            const initialCursoId = turma.cursoId || turma.curso?.id;
 
             // Identificar usuário atual para ordenação
             const token = API.getToken();
             const payload = token ? JSON.parse(atob(token.split('.')[1])) : null;
             const currentUserId = payload ? (payload.userId || payload.id) : null;
 
-            // Buscar módulos e aulas do curso
-            let modulosHtml = '<option value="">-- Selecione (opcional) --</option>';
-            if (cursoId) {
-                try {
-                    let modulos = await API.cronograma.buscarModulosAulas(cursoId);
-
-                    // Ordenação inteligente: Meus Módulos > Templates > Outros
-                    modulos.sort((a, b) => {
-                        const aMine = a.professorId === currentUserId;
-                        const bMine = b.professorId === currentUserId;
-                        const aTemplate = !a.professorId;
-                        const bTemplate = !b.professorId;
-
-                        if (aMine && !bMine) return -1;
-                        if (!aMine && bMine) return 1;
-                        if (aTemplate && !bTemplate) return -1;
-                        if (!aTemplate && bTemplate) return 1;
-                        return 0; // Mantém ordem original (ordem do módulo)
-                    });
-
-                    modulos.forEach(modulo => {
-                        const selected = item.moduloId === modulo.id ? 'selected' : '';
-
-                        // Criar label informativo
-                        let label = modulo.nome;
-                        let style = '';
-
-                        if (modulo.professorId === currentUserId) {
-                            label = `👤 ${modulo.nome} (Seu)`;
-                            style = 'font-weight: bold; color: #000;';
-                        } else if (!modulo.professorId) {
-                            label = `📋 ${modulo.nome} (Geral)`;
-                        } else {
-                            label = `👤 ${modulo.nome} (${modulo.professor?.nome || 'Outro'})`;
-                            style = 'color: #666;';
-                        }
-
-                        // Nota: style em option tem suporte limitado, mas ajuda onde funciona
-                        modulosHtml += `<option value="${modulo.id}" ${selected} style="${style}">${label}</option>`;
-                    });
-
-                    // Guardar os módulos para popular as aulas dinamicamente
-                    window.modulosData = modulos;
-                } catch (e) {
-                    console.error('Erro ao buscar módulos:', e);
-                }
+            // Busca cursos disponíveis
+            let cursos = [];
+            try {
+                cursos = await API.cursos.listar();
+            } catch (err) {
+                console.error('Erro ao buscar cursos:', err);
             }
 
-            // Aulas do módulo selecionado (se houver)
-            let aulasHtml = '<option value="">-- Selecione o módulo primeiro --</option>';
-            if (item.moduloId && window.modulosData) {
-                const moduloSelecionado = window.modulosData.find(m => m.id === item.moduloId);
-                if (moduloSelecionado) {
-                    aulasHtml = '<option value="">-- Selecione (opcional) --</option>';
-                    moduloSelecionado.aulas.forEach(aula => {
-                        const selected = item.aulaId === aula.id ? 'selected' : '';
-                        aulasHtml += `<option value="${aula.id}" ${selected}>Aula ${aula.numero}: ${aula.titulo}</option>`;
-                    });
-                }
-            }
+            let cursosHtml = '<option value="">-- Selecione o curso --</option>';
+            cursos.forEach(curso => {
+                const selected = (curso.id === initialCursoId) ? 'selected' : '';
+                cursosHtml += `<option value="${curso.id}" ${selected}>${curso.nome}</option>`;
+            });
+
+            const dataFormatada = new Date(item.data).toLocaleDateString();
 
             const content = `
-                <form id="form-conteudo" onsubmit="submitConteudoMinistrado(event, '${itemId}')">
-                    <div class="detail-card">
-                        <div class="detail-header">
-                            <i class="bi bi-book"></i> ${turma.nome || 'Aula'}
-                        </div>
-                        <p style="color: var(--text-secondary); margin: 0;">${new Date(item.data).toLocaleDateString('pt-BR')} • ${item.horaInicio} - ${item.horaFim}</p>
+                <div class="modal-info" style="margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #eee;">
+                    <div style="font-weight: 600; font-size: 1.1em; margin-bottom: 5px;">
+                        <i class="bi bi-journal-text"></i> ${item.turma ? item.turma.nome : 'Tarefa Extra'}
                     </div>
-                    
-                    <div class="form-group" style="margin-top: 16px;">
-                        <label class="form-label">Conteúdo Ministrado *</label>
-                        <textarea id="conteudo-ministrado" class="form-input" rows="4" required placeholder="Descreva o que foi passado nesta aula...">${item.conteudoMinistrado || ''}</textarea>
+                    <div style="color: #666;">
+                        ${dataFormatada} • ${item.horaInicio} - ${item.horaFim}
                     </div>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label">Módulo (opcional)</label>
-                            <select id="conteudo-modulo" class="form-select" onchange="onModuloChange(this.value)">
-                                ${modulosHtml}
-                            </select>
+                </div>
+
+                <form onsubmit="submitConteudoMinistrado(event, '${item.id}')">
+                    <div class="form-group">
+                        <label for="conteudo-texto">Conteúdo Ministrado *</label>
+                        <textarea id="conteudo-texto" rows="6" required placeholder="Descreva o que foi passado nesta aula...">${item.conteudoMinistrado || ''}</textarea>
+                    </div>
+
+                    <div style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px;">
+                        <div style="margin-bottom: 10px; font-weight: 600; color: #444;">Vincular ao Material Didático (opcional)</div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="conteudo-curso">Curso</label>
+                                <select id="conteudo-curso" onchange="updateModulosList(this.value)">
+                                    ${cursosHtml}
+                                </select>
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label class="form-label">Aula (opcional)</label>
-                            <select id="conteudo-aula" class="form-select">
-                                ${aulasHtml}
-                            </select>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="conteudo-modulo">Módulo (opcional)</label>
+                                <select id="conteudo-modulo" onchange="updateAulasList(this.value)">
+                                    <option value="">-- Selecione um curso primeiro --</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="conteudo-aula">Aula (opcional)</label>
+                                <select id="conteudo-aula">
+                                    <option value="">-- Selecione o módulo primeiro --</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
-                    
-                    <div class="form-actions">
+
+                    <div class="modal-actions">
                         <button type="button" class="btn btn-secondary" onclick="closeModal('modal-conteudo')">Cancelar</button>
                         <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> Salvar Conteúdo</button>
                     </div>
@@ -833,9 +816,101 @@ const Cronograma = {
             document.body.appendChild(modal);
             modal.classList.add('active');
 
+            // Funções Helper Globais para Cascading
+            window.updateModulosList = async (cursoId) => {
+                const moduloSelect = document.getElementById('conteudo-modulo');
+                const aulaSelect = document.getElementById('conteudo-aula');
+
+                moduloSelect.innerHTML = '<option value="">Carregando...</option>';
+                aulaSelect.innerHTML = '<option value="">-- Selecione o módulo primeiro --</option>';
+                aulaSelect.disabled = true;
+
+                if (!cursoId) {
+                    moduloSelect.innerHTML = '<option value="">-- Selecione um curso primeiro --</option>';
+                    return;
+                }
+
+                try {
+                    const modulos = await API.cronograma.buscarModulosAulas(cursoId);
+
+                    // Ordenação: Meus > Templates > Outros
+                    modulos.sort((a, b) => {
+                        const aMine = a.professorId === currentUserId;
+                        const bMine = b.professorId === currentUserId;
+                        if (aMine && !bMine) return -1;
+                        if (!aMine && bMine) return 1;
+                        return a.ordem - b.ordem;
+                    });
+
+                    window.currentModulosCheck = modulos;
+
+                    let options = '<option value="">-- Selecione (opcional) --</option>';
+                    modulos.forEach(modulo => {
+                        const isPersonal = modulo.professorId === currentUserId;
+                        const nome = isPersonal ? `${modulo.nome} (Meu)` : modulo.nome;
+                        options += `<option value="${modulo.id}">${nome}</option>`;
+                    });
+
+                    moduloSelect.innerHTML = options;
+                    moduloSelect.disabled = false;
+
+                } catch (error) {
+                    console.error("Erro ao buscar módulos:", error);
+                    moduloSelect.innerHTML = '<option value="">Erro ao carregar</option>';
+                }
+            };
+
+            window.updateAulasList = (moduloId) => {
+                const aulaSelect = document.getElementById('conteudo-aula');
+
+                if (!moduloId || !window.currentModulosCheck) {
+                    aulaSelect.innerHTML = '<option value="">-- Selecione o módulo primeiro --</option>';
+                    aulaSelect.disabled = true;
+                    return;
+                }
+
+                const modulo = window.currentModulosCheck.find(m => m.id === moduloId);
+                if (!modulo || !modulo.aulas) {
+                    aulaSelect.innerHTML = '<option value="">Nenhuma aula encontrada</option>';
+                    return;
+                }
+
+                let options = '<option value="">-- Selecione (opcional) --</option>';
+                modulo.aulas.forEach(aula => {
+                    options += `<option value="${aula.id}">${aula.numero} - ${aula.titulo}</option>`;
+                });
+
+                aulaSelect.innerHTML = options;
+                aulaSelect.disabled = false;
+            };
+
+            // Inicialização Automática
+            if (initialCursoId) {
+                setTimeout(async () => {
+                    const cursoSelect = document.getElementById('conteudo-curso');
+                    if (cursoSelect) {
+                        cursoSelect.value = initialCursoId;
+                        await window.updateModulosList(initialCursoId);
+
+                        if (item.moduloId) {
+                            const moduloSelect = document.getElementById('conteudo-modulo');
+                            if (moduloSelect) {
+                                moduloSelect.value = item.moduloId;
+                                window.updateAulasList(item.moduloId);
+
+                                if (item.aulaId) {
+                                    const aulaSelect = document.getElementById('conteudo-aula');
+                                    if (aulaSelect) aulaSelect.value = item.aulaId;
+                                }
+                            }
+                        }
+                    }
+                }, 100);
+            }
+
         } catch (error) {
             console.error('Erro ao abrir modal de conteúdo:', error);
-            showNotification('Erro ao carregar dados: ' + error.message, 'error');
+            showNotification('Erro ao abrir modal: ' + error.message, 'error');
         }
     },
 
@@ -843,7 +918,7 @@ const Cronograma = {
         event.preventDefault();
 
         const dados = {
-            conteudoMinistrado: document.getElementById('conteudo-ministrado').value,
+            conteudoMinistrado: document.getElementById('conteudo-texto').value, // corrigido ID
             moduloId: document.getElementById('conteudo-modulo').value || null,
             aulaId: document.getElementById('conteudo-aula').value || null
         };
@@ -870,25 +945,9 @@ const Cronograma = {
     }
 };
 
-// Função auxiliar para atualizar dropdown de aulas quando módulo muda
-window.onModuloChange = function (moduloId) {
-    const aulaSelect = document.getElementById('conteudo-aula');
-    if (!moduloId || !window.modulosData) {
-        aulaSelect.innerHTML = '<option value="">-- Selecione o módulo primeiro --</option>';
-        return;
-    }
-
-    const modulo = window.modulosData.find(m => m.id === moduloId);
-    if (!modulo) {
-        aulaSelect.innerHTML = '<option value="">-- Nenhuma aula encontrada --</option>';
-        return;
-    }
-
-    let html = '<option value="">-- Selecione (opcional) --</option>';
-    modulo.aulas.forEach(aula => {
-        html += `<option value="${aula.id}">Aula ${aula.numero}: ${aula.titulo}</option>`;
-    });
-    aulaSelect.innerHTML = html;
+// Exportar submitConteudo para ser acessível pelo HTML
+window.submitConteudoMinistrado = (event, itemId) => {
+    Cronograma.submitConteudo(event, itemId);
 };
 
 // Expor globalmente para compatibilidade
